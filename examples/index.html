@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=&apos;http://www.w3.org/2000/svg&apos; viewBox=&apos;0 0 32 32&apos;%3E%3Crect width=&apos;32&apos; height=&apos;32&apos; fill=&apos;%23cfdcd8&apos;/%3E%3Cg fill=&apos;none&apos; stroke=&apos;%236a5138&apos; stroke-width=&apos;1.3&apos;%3E%3Ccircle cx=&apos;16&apos; cy=&apos;16&apos; r=&apos;4&apos;/%3E%3Ccircle cx=&apos;16&apos; cy=&apos;16&apos; r=&apos;7.5&apos;/%3E%3Ccircle cx=&apos;16&apos; cy=&apos;16&apos; r=&apos;11&apos;/%3E%3C/g%3E%3Ccircle cx=&apos;16&apos; cy=&apos;16&apos; r=&apos;2.4&apos; fill=&apos;%23efe4c8&apos;/%3E%3C/svg%3E">
+  <title>Waterlines - examples</title>
+  <style>
+    :root { --ink:#3a3128; --soft:#6b5c48; --paper:#f4ecd8; --rule:#c9b894; }
+    body {
+      margin: 0; padding: 48px 28px; background: var(--paper); color: var(--ink);
+      font: 15px/1.6 ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    }
+    main { max-width: 62ch; margin: 0 auto; }
+    h1 { margin: 0 0 4px; font: 600 24px/1.2 ui-serif, Georgia, serif; }
+    p.lede { margin: 0 0 28px; color: var(--soft); }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { border-top: 1px solid var(--rule); padding: 14px 0; }
+    a { color: #6a5138; font-weight: 600; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    span { display: block; color: var(--soft); font-size: 13.5px; }
+    code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: #e7dbbe; padding: 1px 4px; border-radius: 2px; }
+    p.footnote { margin-top: 28px; color: var(--soft); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Waterlines</h1>
+    <p class="lede">
+      Old-map ripples drawn on a 2D canvas over a live web map. Technique after
+      <a href="https://observablehq.com/@oliviafvane/ii-drawing-waterlines-on-maps" target="_blank" rel="noopener">Olivia Vane</a>.
+    </p>
+    <ul>
+      <li>
+        <a href="indonesia-maplibre.html">Nusantara &mdash; MapLibre</a>
+        <span>The full thing: waterlines over the Indonesian archipelago, with style controls
+        and a live frame-budget readout. Start here.</span>
+      </li>
+      <li>
+        <a href="studio.html">Studio</a>
+        <span>The same map and the same panel, plus the two things you need for your own
+        work: drop in a GeoJSON, and save the result as a PNG.</span>
+      </li>
+      <li>
+        <a href="still-gallery.html">Still gallery</a>
+        <span>The same renderer with no map, fitted to a box &mdash; presets side by side,
+        and what happens without curve smoothing.</span>
+      </li>
+      <li>
+        <a href="indonesia-deckgl.html">Nusantara &mdash; deck.gl</a>
+        <span>The same overlay driven by a deck.gl viewport instead of a MapLibre transform.</span>
+      </li>
+    </ul>
+    <p class="lede footnote">
+      The coastline files in <code>data/</code> are committed, but they are generated:
+      <code>npm run data</code> rebuilds them from Natural Earth.
+    </p>
+  </main>
+</body>
+</html>

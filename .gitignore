@@ -1,0 +1,12 @@
+node_modules/
+.cache/
+*.log
+
+# Large intermediate downloads from scripts/build-data.mjs.
+# The clipped outputs in data/ are small and ARE committed.
+data/.raw/
+
+# The downloaded Observable notebook this library ports, kept locally for
+# reference. ~17 MB, most of it cached images, and not ours to redistribute.
+# The original: https://observablehq.com/@oliviafvane/ii-drawing-waterlines-on-maps
+ii-drawing-waterlines-on-maps/

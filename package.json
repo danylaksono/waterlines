@@ -1,0 +1,39 @@
+{
+  "name": "waterlines",
+  "version": "0.1.0",
+  "description": "Old-map style waterlines drawn on a 2D canvas over MapLibre GL / deck.gl, ported from Olivia Vane's Observable notebooks",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./maplibre": "./src/adapters/maplibre.js",
+    "./deckgl": "./src/adapters/deckgl.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "dev": "node scripts/serve.mjs",
+    "data": "node scripts/build-data.mjs",
+    "test": "node --test tests/run-tests.mjs"
+  },
+  "keywords": [
+    "maplibre",
+    "deck.gl",
+    "waterlines",
+    "cartography",
+    "canvas",
+    "coastline",
+    "indonesia"
+  ],
+  "author": "Dany Laksono",
+  "license": "MIT",
+  "peerDependencies": {
+    "maplibre-gl": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "maplibre-gl": { "optional": true }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
