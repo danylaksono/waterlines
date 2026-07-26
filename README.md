@@ -5,7 +5,7 @@ rendered on a 2D canvas over a live MapLibre GL or deck.gl map, and kept fast
 enough that the map still moves at 60 fps.
 
 The technique is [Olivia Vane's][notebook], from her Observable notebook
-*Drawing waterlines on maps*. This repository ports it out of Observable, works
+_Drawing waterlines on maps_. This repository ports it out of Observable, works
 out what it takes to run it every frame instead of once per static image, and
 applies it to the Indonesian archipelago.
 
@@ -20,22 +20,22 @@ node scripts/smoke.mjs   # end-to-end browser check with timings
 
 Examples:
 
-| page | what it shows |
-| --- | --- |
+| page                                                                   | what it shows                                                                                               |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | [`examples/indonesia-maplibre.html`](examples/indonesia-maplibre.html) | The main one. Waterlines over Nusantara with style controls, four basemaps and a live frame-budget readout. |
-| [`examples/studio.html`](examples/studio.html) | The same map and panel, plus: drop in your own GeoJSON, and save the result as a PNG. |
-| [`examples/indonesia-deckgl.html`](examples/indonesia-deckgl.html) | The same engine driven by a deck.gl viewport. |
-| [`examples/still-gallery.html`](examples/still-gallery.html) | No map: geometry fitted to a box, like the original notebook. |
+| [`examples/studio.html`](examples/studio.html)                         | The same map and panel, plus: drop in your own GeoJSON, and save the result as a PNG.                       |
+| [`examples/indonesia-deckgl.html`](examples/indonesia-deckgl.html)     | The same engine driven by a deck.gl viewport.                                                               |
+| [`examples/still-gallery.html`](examples/still-gallery.html)           | No map: geometry fitted to a box, like the original notebook.                                               |
 
 ---
 
 There is a longer write-up in [`docs/methodology.md`](docs/methodology.md): the
 mathematics, the complexity analysis, the measurement protocol, the trade-offs,
-and the things that did not work.
+and the things that did not work, which eventually lead to the current implementation.
 
 ## The technique
 
-Waterlines are offset curves — line N sits *d* pixels out from the shore. The
+Waterlines are offset curves — line N sits _d_ pixels out from the shore. The
 obvious way to get them is to buffer the coastline polygon N times, which is
 what `@turf/buffer` does and why the original notebook warns you it will take
 about forty seconds.
@@ -45,15 +45,15 @@ at all. It rasterises them:
 
 ```js
 for (let i = 0; i <= count; i++) {
-  const pen = penWidth(i);            // widest first, narrowing inward
+  const pen = penWidth(i); // widest first, narrowing inward
 
   ctx.lineWidth = pen + lineWeight(i);
-  ctx.stroke(coastline);              // a very fat line, centred on the shore
+  ctx.stroke(coastline); // a very fat line, centred on the shore
 
-  ctx.globalCompositeOperation = 'destination-out';
+  ctx.globalCompositeOperation = "destination-out";
   ctx.lineWidth = pen;
-  ctx.stroke(coastline);              // erase its middle
-  ctx.globalCompositeOperation = 'source-over';
+  ctx.stroke(coastline); // erase its middle
+  ctx.globalCompositeOperation = "source-over";
 }
 ```
 
@@ -80,7 +80,7 @@ Two consequences worth knowing:
 ## Making it survive a live map
 
 A static image can afford one slow render. A map cannot, and the cost here is
-not geometry — it is *rasterised area*. Each pass paints a band `2 × extent`
+not geometry — it is _rasterised area_. Each pass paints a band `2 × extent`
 wide along every visible coastline, twice. Over the whole archipelago that is
 tens of millions of pixels per frame. No amount of vertex optimisation touches
 it.
@@ -88,14 +88,14 @@ it.
 Five things make it work, roughly in order of how much they matter:
 
 **1. Nothing is projected per frame.** At pitch 0 a Web Mercator view is
-*exactly* an affine transform of mercator space. So geometry is projected once
+_exactly_ an affine transform of mercator space. So geometry is projected once
 per zoom level into a `Path2D`, and a frame is a `ctx.setTransform` plus stroke
 calls — JavaScript never touches a vertex.
 [`src/adapters/transform.js`](src/adapters/transform.js) recovers those six
 numbers from three `map.project` calls, which also picks up bearing for free.
 
 **2. The rendered bitmap is reused.** At a fixed zoom and bearing, the waterline
-image is *rigid* under panning — the same picture, translated. It is rendered
+image is _rigid_ under panning — the same picture, translated. It is rendered
 into a canvas larger than the viewport and blitted while the view slides within
 that margin. Zoom and rotation go through the same blit with a full affine;
 line widths scale with the gesture, which is wrong, but only until the map
@@ -118,7 +118,7 @@ beats nothing. See [`src/render/RasterCache.js`](src/render/RasterCache.js).
 **3b. Two rungs: draft, then crisp.** From cold, a full render of the whole
 archipelago is a second or more, and staring at a bare map for that long is
 worse than seeing soft waterlines quickly. So the first pass runs at half
-resolution *and two levels of detail coarser*, which lands in ~0.3 s, and the
+resolution _and two levels of detail coarser_, which lands in ~0.3 s, and the
 full-resolution pass replaces it. The geometry half is what matters: stroking a
 path costs roughly what its vertex count costs and is nearly independent of how
 many pixels it covers, so halving the resolution alone barely helped.
@@ -133,7 +133,7 @@ idle callback.
 
 **5. Resolution is what gives way under load**, not the line count and not the
 geometry. A refresh started mid-gesture renders at a lower pixel ratio, so the
-lines stay in exactly the same *place* and merely soften. Lines that move or
+lines stay in exactly the same _place_ and merely soften. Lines that move or
 disappear are far more distracting than lines that blur.
 
 ### Three measurement traps
@@ -160,13 +160,13 @@ however long that takes. One modest budget, moving or not.
 From `node scripts/smoke.mjs` at 1440×900 (Chrome headless, GPU rasterisation
 on an Intel Arc iGPU), `antique` preset, whole archipelago = 712 visible rings:
 
-| drag | overlay off | overlay on |
-| --- | --- | --- |
-| Nusantara z4.2 | 16.4 ms median | 16.7 ms median (p90 17.6) |
-| Sulawesi z6.0 | 16.4 ms | 16.5 ms (p90 17.6) |
-| Bali z8.3 | 16.6 ms | 16.5 ms (p90 17.9) |
-| Banda z10.5 | 16.5 ms | 16.5 ms (p90 17.8) |
-| Nusantara, **while a refresh is in flight** | — | 16.6 ms (p90 19.1) |
+| drag                                        | overlay off    | overlay on                |
+| ------------------------------------------- | -------------- | ------------------------- |
+| Nusantara z4.2                              | 16.4 ms median | 16.7 ms median (p90 17.6) |
+| Sulawesi z6.0                               | 16.4 ms        | 16.5 ms (p90 17.6)        |
+| Bali z8.3                                   | 16.6 ms        | 16.5 ms (p90 17.9)        |
+| Banda z10.5                                 | 16.5 ms        | 16.5 ms (p90 17.8)        |
+| Nusantara, **while a refresh is in flight** | —              | 16.6 ms (p90 19.1)        |
 
 A locked 60 fps, indistinguishable from the map with no overlay at all. The
 last row is the one worth having: dragging while the overlay is mid-refresh is
@@ -179,7 +179,7 @@ from **0.3 s to 4 s** across runs on this machine, depending on how the pacing
 controller happens to be primed and what else the GPU is doing. That spread is
 real and worth knowing about — it is a second or two of genuine rasterisation,
 not a constant. It runs in the background and stops the moment you touch the
-map. What it does not do is hide: while it runs and you are *not* interacting,
+map. What it does not do is hide: while it runs and you are _not_ interacting,
 the page's frames are long. Nothing is moving, so nothing shows; and the
 instant a gesture starts it gets out of the way.
 
@@ -193,16 +193,16 @@ is already down to ~28 ms frames before the overlay does anything.
 ### MapLibre
 
 ```js
-import { WaterlinesOverlay } from './src/adapters/maplibre.js';
+import { WaterlinesOverlay } from "./src/adapters/maplibre.js";
 
-const land = await (await fetch('data/indonesia-land.geojson')).json();
+const land = await (await fetch("data/indonesia-land.geojson")).json();
 
 const overlay = new WaterlinesOverlay(map, {
-  data: land,                    // GeoJSON polygons of land
-  style: { preset: 'antique' },
+  data: land, // GeoJSON polygons of land
+  style: { preset: "antique" },
 });
 
-overlay.setStyle({ count: 18, extent: 60 });   // cheap; wire it to a slider
+overlay.setStyle({ count: 18, extent: 60 }); // cheap; wire it to a slider
 overlay.setVisible(false);
 overlay.remove();
 ```
@@ -218,9 +218,13 @@ giving up `destination-out` compositing — the whole trick. So the overlay keep
 its own canvas and takes deck's viewport:
 
 ```js
-import { WaterlinesDeckOverlay } from './src/adapters/deckgl.js';
+import { WaterlinesDeckOverlay } from "./src/adapters/deckgl.js";
 
-const overlay = new WaterlinesDeckOverlay({ container, data: land, style: { preset: 'nautical' } });
+const overlay = new WaterlinesDeckOverlay({
+  container,
+  data: land,
+  style: { preset: "nautical" },
+});
 
 // deck stops drawing when idle, so give the overlay its own frame source.
 const frame = () => {
@@ -236,8 +240,10 @@ returns early. See [`examples/js/deck-app.js`](examples/js/deck-app.js).
 ### Without a map
 
 ```js
-import { renderStill } from './src/still.js';
-document.body.append(renderStill(land, { width: 600, height: 600, style: { preset: 'antique' } }));
+import { renderStill } from "./src/still.js";
+document.body.append(
+  renderStill(land, { width: 600, height: 600, style: { preset: "antique" } }),
+);
 ```
 
 ### Your own data, and saving a picture
@@ -265,22 +271,27 @@ See [`examples/js/export-png.js`](examples/js/export-png.js);
 `renderExportCanvas()` gives you the composited canvas without saving it.
 
 An engraved wind rose ([`examples/js/compass.js`](examples/js/compass.js)) can
-be placed in any of the four corners, or turned off. It counter-rotates with
+be placed in any of the four corners, or turned off, with sliders for its size
+and for its offset from the two edges of that corner. It counter-rotates with
 the map bearing so its north stays true north, and — like the paper grain — it
 is drawn with canvas rather than DOM precisely so the export can paint the same
-thing, in the same corner, at any scale.
+thing, in the same place, at any scale.
+
+The control panel folds away to a single `Controls` button — the toggle in its
+header, or the `H` key — for framing a view without the panel covering
+a quarter of it.
 
 ### Basemaps
 
 The examples ship four, chosen to show the overlay staying in register with
 things it knows nothing about:
 
-| basemap | notes |
-| --- | --- |
-| **Paper chart** (default) | Self-contained: background colour plus the same GeoJSON the waterlines use. No tile server, no key, nothing to expire. |
-| **Woodblock** | OpenHistoricalMap's hosted CC0 vector style, from [pnorman/maplibre-styles][styles]. A woodcut paper pattern that suits the technique almost too well. |
-| **Canvas-drawn land** | The map draws only the sea; the overlay fills the land itself (`land: 'fill'`), as the notebook did. |
-| **OpenStreetMap** | Raster tiles. Demo use only — respect the OSM tile usage policy. |
+| basemap                   | notes                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Paper chart** (default) | Self-contained: background colour plus the same GeoJSON the waterlines use. No tile server, no key, nothing to expire.                                 |
+| **Woodblock**             | OpenHistoricalMap's hosted CC0 vector style, from [pnorman/maplibre-styles][styles]. A woodcut paper pattern that suits the technique almost too well. |
+| **Canvas-drawn land**     | The map draws only the sea; the overlay fills the land itself (`land: 'fill'`), as the notebook did.                                                   |
+| **OpenStreetMap**         | Raster tiles. Demo use only — respect the OSM tile usage policy.                                                                                       |
 
 ![Waterlines over OpenHistoricalMap's Woodblock style, Komodo and Flores](docs/woodblock.png)
 
@@ -296,19 +307,19 @@ geometry your basemap draws.
 All distances are in **CSS pixels, measured outward from the shore**, so the
 ripples look the same at every zoom.
 
-| option | default | meaning |
-| --- | --- | --- |
-| `count` | `12` | number of waterlines |
-| `extent` | `34` | distance from shore to the outermost line |
-| `inset` | `2` | distance to the innermost line |
-| `spacingExponent` | `0.7` | below 1 crowds the lines against the shore, above 1 spreads them |
-| `lineWidth` | `[0.9, 0.45]` | visible width, `[innermost, outermost]` |
-| `opacity` | `[0.12, 1]` | alpha, `[outermost, innermost]` |
-| `color` | `'#2f6f7e'` | string, array, or `t => colour` with `t` = 0 innermost … 1 outermost |
-| `filled` | `false` | solid graduated bands instead of lines |
-| `land` | `'clip'` | `'clip'` punches out the land so the map shows through; `'fill'` paints it; `'none'` leaves it |
-| `coastline` | `null` | `{ color, width, opacity }` drawn on top |
-| `lineJoin` | `'bevel'` | `'round'` is prettier on sharp corners and markedly slower |
+| option            | default       | meaning                                                                                        |
+| ----------------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| `count`           | `12`          | number of waterlines                                                                           |
+| `extent`          | `34`          | distance from shore to the outermost line                                                      |
+| `inset`           | `2`           | distance to the innermost line                                                                 |
+| `spacingExponent` | `0.7`         | below 1 crowds the lines against the shore, above 1 spreads them                               |
+| `lineWidth`       | `[0.9, 0.45]` | visible width, `[innermost, outermost]`                                                        |
+| `opacity`         | `[0.12, 1]`   | alpha, `[outermost, innermost]`                                                                |
+| `color`           | `'#2f6f7e'`   | string, array, or `t => colour` with `t` = 0 innermost … 1 outermost                           |
+| `filled`          | `false`       | solid graduated bands instead of lines                                                         |
+| `land`            | `'clip'`      | `'clip'` punches out the land so the map shows through; `'fill'` paints it; `'none'` leaves it |
+| `coastline`       | `null`        | `{ color, width, opacity }` drawn on top                                                       |
+| `lineJoin`        | `'bevel'`     | `'round'` is prettier on sharp corners and markedly slower                                     |
 
 Presets: `classic`, `antique`, `nautical`, `voronoi`, `bands` — see the
 [gallery](examples/still-gallery.html).
@@ -398,7 +409,7 @@ by their adapters.
   interleaved into a MapLibre style, so basemap labels and roads sit under the
   waterlines rather than over them.
 - **A third-party basemap draws a different coastline** from the one the
-  waterlines are built from — see *Basemaps* above.
+  waterlines are built from — see _Basemaps_ above.
 - **Islands pop in.** Rings smaller than `lod.minRingPx` on screen are dropped;
   raise it to cull harder, lower it for more islets.
 - Overlapping ripples from neighbouring islands blend twice where they cross.
@@ -407,12 +418,12 @@ by their adapters.
 
 ## Credit
 
-- Technique: [Olivia Vane, *Drawing waterlines on maps*][notebook] — the
+- Technique: [Olivia Vane, _Drawing waterlines on maps_][notebook] — the
   `destination-out` formulation, the spacing and thickness scales, and the
   curve smoothing all come from there.
 - The compositing explanation the notebook builds on:
-  [Andy Woodruff, *Canvas cartography*](https://observablehq.com/@awoodruff/canvas-cartography-nacis-2019).
-- Curve smoothing approach: [Nadieh Bremer, *Simplified curved earth map*](https://observablehq.com/@nbremer/simplified-curved-earth-map).
+  [Andy Woodruff, _Canvas cartography_](https://observablehq.com/@awoodruff/canvas-cartography-nacis-2019).
+- Curve smoothing approach: [Nadieh Bremer, _Simplified curved earth map_](https://observablehq.com/@nbremer/simplified-curved-earth-map).
 - Coastlines: [Natural Earth](https://www.naturalearthdata.com/), public domain.
 - Basemap index: [pnorman/maplibre-styles][styles], which is where the
   Woodblock style came from. Woodblock itself is by
@@ -420,6 +431,8 @@ by their adapters.
   its tiles carry OHM/OpenStreetMap data and are attributed in the map.
 
 MIT.
+
+[@danylaksono](https://github.com/danylaksono)
 
 [notebook]: https://observablehq.com/@oliviafvane/ii-drawing-waterlines-on-maps
 [styles]: https://github.com/pnorman/maplibre-styles

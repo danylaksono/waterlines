@@ -87,13 +87,16 @@ const EXTENT = 1.34;
  * @param {HTMLElement} container positioned element the canvas is placed in
  * @param {Object} [options]
  * @param {number} [options.radius=62] outer ring radius in CSS px
- * @param {number} [options.inset=18] gap from the map edges in CSS px
+ * @param {number} [options.inset=18] gap from *both* map edges of the chosen
+ *   corner, in CSS px. One number rather than separate x and y: on a rose the
+ *   two are nearly always meant to match, and a single control is easier to
+ *   nudge to a value that looks right.
  * @param {string} [options.placement='bottom-right'] key in {@link PLACEMENTS}
  * @param {boolean} [options.visible=true]
  * @param {string} [options.ink]
  * @param {string} [options.paper]
- * @returns {Object} handle with `setPlacement`, `setRadius`, `setVisible`,
- *   `setColors`, `paintInto`, `remove`
+ * @returns {Object} handle with `setPlacement`, `setRadius`, `setInset`,
+ *   `setVisible`, `setColors`, `paintInto`, `remove`
  */
 export function createCompass(map, container, options = {}) {
   let radius = options.radius ?? 62;
@@ -156,6 +159,12 @@ export function createCompass(map, container, options = {}) {
     get placement() {
       return placement;
     },
+    get inset() {
+      return inset;
+    },
+    get radius() {
+      return radius;
+    },
     get visible() {
       return visible;
     },
@@ -176,6 +185,15 @@ export function createCompass(map, container, options = {}) {
     setRadius(value) {
       radius = value;
       paint();
+    },
+
+    /**
+     * @param {number} value gap from both edges of the current corner, CSS px.
+     *   Only the container's position changes, so no repaint is needed.
+     */
+    setInset(value) {
+      inset = value;
+      position();
     },
 
     /** @param {boolean} value */

@@ -69,6 +69,44 @@ html, body {
   border-bottom: 1px solid var(--rule);
 }
 
+/* Only the studio has a toggle; the sibling combinator keeps the other page's
+   header from carrying a gutter for a button it does not have. */
+#panel-toggle ~ header { padding-right: 46px; }
+
+/* Studio only: fold the panel away for framing a shot. The panel collapses to
+   this button, which is the only way back, so it is never hidden with it. */
+#panel-toggle {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  padding: 4px 9px;
+  font: 600 10px/1.3 ui-sans-serif, system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: #fbf6e9;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  cursor: pointer;
+}
+#panel-toggle:hover { color: var(--ink); background: #fff; }
+
+#panel.is-collapsed {
+  width: auto;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+#panel.is-collapsed header,
+#panel.is-collapsed #panel-body { display: none; }
+#panel.is-collapsed #panel-toggle {
+  position: static;
+  padding: 6px 11px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 8px 22px rgba(30, 22, 10, 0.28);
+}
+
 #panel h1 {
   margin: 0;
   font: 600 15px/1.2 ui-serif, Georgia, "Times New Roman", serif;

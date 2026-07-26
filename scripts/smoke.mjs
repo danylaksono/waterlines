@@ -360,6 +360,15 @@ async function studio(browser) {
       return Math.round(r.left - m.left) + ',' + Math.round(r.top - m.top);
     };
     const atBottomRight = box();
+
+    // Offset: away from both edges of the corner at once, screen and export.
+    s.compass.setInset(60);
+    const atInset60 = box();
+    const insetInExport = sample(
+      await renderExportCanvas({ map: s.map, overlay: s.overlay, decorate: s.paintCompass })
+    );
+    s.compass.setInset(18);
+
     s.compass.setPlacement('top-left');
     const atTopLeft = box();
     const movedInExport = sample(
@@ -382,6 +391,9 @@ async function studio(browser) {
       hidden,
       offMatchesPlain: offInExport === plain,
       corners: atBottomRight + ' -> ' + atTopLeft,
+      insetMoves: atBottomRight !== atInset60,
+      insetInExport: insetInExport !== withRose,
+      insets: atBottomRight + ' -> ' + atInset60,
     });
   })()`));
   check('wind rose is drawn', rose.present, rose.size);
@@ -390,6 +402,35 @@ async function studio(browser) {
   check('placement moves it on screen', rose.moves, rose.corners);
   check('placement moves it in the export', rose.movesInExport);
   check('placement "off" hides it everywhere', rose.hidden && rose.offMatchesPlain);
+  check('edge offset moves it on screen', rose.insetMoves, rose.insets);
+  check('edge offset moves it in the export', rose.insetInExport);
+
+  // Folding the panel away, so the map can be framed without the controls.
+  const toggle = JSON.parse(await browser.evaluate(`(() => {
+    const panel = document.getElementById('panel');
+    const button = document.getElementById('panel-toggle');
+    const body = document.getElementById('panel-body');
+    const open = panel.getBoundingClientRect().height;
+
+    button.click();
+    const collapsed = panel.getBoundingClientRect().height;
+    const bodyHidden = getComputedStyle(body).display === 'none';
+    const stillReachable = button.getBoundingClientRect().width > 0;
+
+    // The keyboard route, which must work with nothing focused.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', bubbles: true }));
+    const reopened = panel.getBoundingClientRect().height;
+
+    return JSON.stringify({
+      collapses: collapsed < open * 0.5 && bodyHidden,
+      stillReachable,
+      restores: Math.abs(reopened - open) < 1,
+      sizes: Math.round(open) + 'px -> ' + Math.round(collapsed) + 'px',
+    });
+  })()`));
+  check('panel toggle folds the controls away', toggle.collapses, toggle.sizes);
+  check('the toggle stays on screen when collapsed', toggle.stillReachable);
+  check('H restores the panel', toggle.restores);
 
   // And the real button, end to end.
   await browser.evaluate('(() => { document.getElementById("export-button").click(); return true; })()');

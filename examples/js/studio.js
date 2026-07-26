@@ -168,6 +168,8 @@ function buildUi() {
   const root = document.getElementById('panel-body');
   const initial = resolveStyle({ preset: 'antique' });
 
+  wirePanelToggle();
+
   buildDataSection(section(root, 'Data', true));
 
   const look = section(root, 'Waterlines', true);
@@ -276,12 +278,56 @@ function buildRoseSection(body) {
         value: ROSE.radius,
         format: (v) => `${v * 2} px`,
       },
+      {
+        name: 'inset',
+        label: 'Offset from edge',
+        type: 'range',
+        min: 0,
+        max: 200,
+        step: 2,
+        value: ROSE.inset,
+        format: (v) => `${v} px`,
+        hint:
+          'Measured from both edges of the chosen corner at once, and from the ' +
+          'rose’s bounding box rather than its ring — so the letters stay ' +
+          'inside the image at 0.',
+      },
     ],
     (name, value) => {
       if (name === 'placement') state.compass.setPlacement(value);
       else if (name === 'radius') state.compass.setRadius(value);
+      else if (name === 'inset') state.compass.setInset(value);
     }
   );
+}
+
+/**
+ * Fold the panel away, so the map can be framed and screenshotted without the
+ * controls in the picture. The panel collapses to the button itself rather than
+ * hiding it too, or there would be no way back.
+ */
+function wirePanelToggle() {
+  const panel = document.getElementById('panel');
+  const button = document.getElementById('panel-toggle');
+
+  const set = (open) => {
+    panel.classList.toggle('is-collapsed', !open);
+    button.setAttribute('aria-expanded', String(open));
+    button.textContent = open ? 'Hide' : 'Controls';
+    button.title = open ? 'Hide the panel (H)' : 'Show the panel (H)';
+  };
+
+  button.addEventListener('click', () => set(panel.classList.contains('is-collapsed')));
+
+  // A shortcut is worth having on a page used for framing shots, but it must
+  // not fire while the URL box or a slider has focus.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'h' && event.key !== 'H') return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const tag = event.target instanceof HTMLElement ? event.target.tagName : '';
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    set(panel.classList.contains('is-collapsed'));
+  });
 }
 
 function buildExportSection(body) {
