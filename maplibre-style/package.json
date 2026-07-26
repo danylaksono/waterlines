@@ -1,0 +1,12 @@
+{
+  "name": "waterlines-maplibre-style-prototype",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: bake waterline ripples as real offset geometry and render them as a native MapLibre GL style, instead of the canvas overlay in ../src.",
+  "scripts": {
+    "build": "node build-rings.mjs"
+  },
+  "devDependencies": {
+    "@turf/turf": "^7.3.5"
+  }
+}

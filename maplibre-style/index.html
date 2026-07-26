@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waterlines - native MapLibre style prototype</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    #map { position: absolute; inset: 0; }
+    #panel {
+      position: absolute; top: 12px; left: 12px; z-index: 1;
+      max-width: 340px; background: rgba(255, 255, 255, 0.92);
+      border-radius: 8px; padding: 12px 14px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      font-size: 13px; line-height: 1.45; color: #2a2a2a;
+    }
+    #panel h1 { font-size: 15px; margin: 0 0 6px; }
+    #panel p { margin: 6px 0; }
+    #panel select { width: 100%; margin-top: 4px; padding: 4px; }
+    #panel code { background: #eee; padding: 1px 4px; border-radius: 3px; }
+    #note { color: #6a5138; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <section id="panel">
+    <h1>Waterlines as a native MapLibre style</h1>
+    <p>
+      Same ripple math as the canvas demo, but baked into real offset geometry
+      offline and rendered as an ordinary <code>line</code> layer - no canvas,
+      no per-frame drawing. See <code>README.md</code> in this folder.
+    </p>
+    <label for="dataset">Region / preset</label>
+    <select id="dataset"></select>
+    <p id="note"></p>
+  </section>
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
