@@ -23,7 +23,7 @@ Examples:
 | page                                                                   | what it shows                                                                                               |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | [`examples/indonesia-maplibre.html`](examples/indonesia-maplibre.html) | The main one. Waterlines over Nusantara with style controls, four basemaps and a live frame-budget readout. |
-| [`examples/studio.html`](examples/studio.html)                         | The same map and panel, plus: drop in your own GeoJSON, and save the result as a PNG.                       |
+| [`studio/index.html`](studio/index.html) (served at `/studio`)         | The same map and panel, plus: drop in your own GeoJSON, and save the result as a PNG.                       |
 | [`examples/indonesia-deckgl.html`](examples/indonesia-deckgl.html)     | The same engine driven by a deck.gl viewport.                                                               |
 | [`examples/still-gallery.html`](examples/still-gallery.html)           | No map: geometry fitted to a box, like the original notebook.                                               |
 
@@ -248,7 +248,7 @@ document.body.append(
 
 ### Your own data, and saving a picture
 
-[`examples/studio.html`](examples/studio.html) is the main example plus the two
+[`studio/index.html`](studio/index.html), served at `/studio`, is the main example plus the two
 things you need to use this on real work. Drop a GeoJSON anywhere on the page
 (or pick a file, or paste a URL) and the waterlines redraw around it — polygons
 or multipolygons, land or lakes or building footprints, anything with an edge.
@@ -267,10 +267,10 @@ the vignette into one image. Three details make that less trivial than
 - above 1× the map container is temporarily grown, because MapLibre renders to
   the size it is given — there is no other way to make it draw more pixels.
 
-See [`examples/js/export-png.js`](examples/js/export-png.js);
+See [`studio/js/export-png.js`](studio/js/export-png.js);
 `renderExportCanvas()` gives you the composited canvas without saving it.
 
-An engraved wind rose ([`examples/js/compass.js`](examples/js/compass.js)) can
+An engraved wind rose ([`studio/js/compass.js`](studio/js/compass.js)) can
 be placed in any of the four corners, or turned off, with sliders for its size
 and for its offset from the two edges of that corner. It counter-rotates with
 the map bearing so its north stays true north, and — like the paper grain — it
@@ -385,12 +385,18 @@ scripts/
   serve.mjs        zero-dependency static server
   browser.mjs      minimal Chrome DevTools Protocol driver
   smoke.mjs        end-to-end browser checks with timings
-examples/          js/ is split by function, not by page:
-  waterline-controls.js  the panel both map pages share
-  basemap.js             MapLibre style definitions
-  geojson-input.js       file, drag-drop and URL loading, with validation
-  export-png.js          compositing and download
-  paper.js               grain and vignette, shared by screen and export
+shared/          assets both the examples and the studio load:
+  css/app.css            the map-page stylesheet
+  js/waterline-controls.js  the panel both map pages share
+  js/basemap.js          MapLibre style definitions
+  js/controls.js         declarative form builder for the panel
+  js/paper.js            grain and vignette, shared by screen and export
+examples/        the demo pages, with js/ for their own wiring
+studio/          served at /studio; js/ is split by function:
+  js/studio.js           page wiring
+  js/geojson-input.js    file, drag-drop and URL loading, with validation
+  js/export-png.js       compositing and download
+  js/compass.js          the engraved wind rose
 tests/             unit tests for the pure maths
 ```
 

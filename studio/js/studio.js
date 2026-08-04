@@ -1,20 +1,22 @@
 /**
  * studio.js
  *
- * Same map, same panel, same waterlines as `indonesia-maplibre.html` - plus
- * the two things you need to use this on your own data: load a GeoJSON, and
- * save the result as a PNG.
+ * Drives `studio/index.html`, served at `/studio`. Same map, same panel, same
+ * waterlines as `examples/indonesia-maplibre.html` - plus the two things you
+ * need to use this on your own data: load a GeoJSON, and save the result as
+ * a PNG.
  *
- * The waterline and performance sections come from `waterline-controls.js`,
- * shared with the other page, so the two never drift apart.
+ * The waterline and performance sections come from
+ * `shared/js/waterline-controls.js`, shared with the other page, so the two
+ * never drift apart.
  */
 
 import { WaterlinesOverlay } from '../../src/adapters/maplibre.js';
 import { resolveStyle } from '../../src/render/style.js';
-import { BASEMAPS, applyBasemap } from './basemap.js';
-import { buildPanel, section } from './controls.js';
+import { BASEMAPS, applyBasemap } from '../../shared/js/basemap.js';
+import { buildPanel, section } from '../../shared/js/controls.js';
 import { PLACEMENTS, createCompass } from './compass.js';
-import { applyGrain } from './paper.js';
+import { applyGrain } from '../../shared/js/paper.js';
 import { attachDropZone, fetchGeoJson, parseGeoJson, readGeoJsonFile } from './geojson-input.js';
 import { exportPng } from './export-png.js';
 import {
@@ -23,12 +25,16 @@ import {
   qualityFields,
   styleFromValues,
   waterlineFields,
-} from './waterline-controls.js';
+} from '../../shared/js/waterline-controls.js';
+
+// Resolved against this module, not the page: the studio is served from
+// `/studio/`, the other examples from `/examples/`.
+const sample = (file) => new URL(`../../data/${file}`, import.meta.url).href;
 
 const SAMPLES = {
-  indonesia: { label: 'Indonesia', url: '../../data/indonesia-land.geojson' },
-  bali: { label: 'Bali & Lombok', url: '../../data/bali-land.geojson' },
-  'raja-ampat': { label: 'Raja Ampat', url: '../../data/raja-ampat-land.geojson' },
+  indonesia: { label: 'Indonesia', url: sample('indonesia-land.geojson') },
+  bali: { label: 'Bali & Lombok', url: sample('bali-land.geojson') },
+  'raja-ampat': { label: 'Raja Ampat', url: sample('raja-ampat-land.geojson') },
 };
 
 const ROSE = { radius: 62, inset: 18, placement: 'bottom-right' };

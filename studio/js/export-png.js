@@ -18,7 +18,7 @@
  * canvas at the size it is given. The container is restored afterwards.
  */
 
-import { drawGrain, drawVignette } from './paper.js';
+import { drawGrain, drawVignette } from '../../shared/js/paper.js';
 
 /**
  * Composite the map and the waterlines into a fresh canvas, without saving it.

@@ -4,7 +4,7 @@
  * An engraved-chart wind rose.
  *
  * Drawn with canvas rather than as SVG or DOM for the same reason the paper
- * grain is (see `paper.js`): the studio's job is producing images, and the PNG
+ * grain is (see `shared/js/paper.js`): the studio's job is producing images, and the PNG
  * export has to be able to paint the identical thing into the export canvas.
  * One drawing function, two callers.
  *

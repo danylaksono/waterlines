@@ -2,8 +2,8 @@
  * controls.js
  *
  * A tiny declarative form builder for the demo panel. Kept separate from the
- * map wiring so the interesting file (`app.js`) stays about waterlines rather
- * than about DOM plumbing.
+ * map wiring so the interesting files (`examples/js/app.js`,
+ * `studio/js/studio.js`) stay about waterlines rather than about DOM plumbing.
  */
 
 /**

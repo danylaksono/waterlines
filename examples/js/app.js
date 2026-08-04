@@ -7,23 +7,23 @@
  * Everything here is glue. The technique is in `src/render/WaterlineRenderer.js`,
  * and what makes it survive being run every frame is in
  * `src/render/WaterlineEngine.js`. The panel itself lives in
- * `waterline-controls.js`, shared with `studio.html`.
+ * `shared/js/waterline-controls.js`, shared with `studio/index.html`.
  */
 
 import { WaterlinesOverlay } from '../../src/adapters/maplibre.js';
 import { resolveStyle } from '../../src/render/style.js';
-import { BASEMAPS, applyBasemap } from './basemap.js';
+import { BASEMAPS, applyBasemap } from '../../shared/js/basemap.js';
 import { REGIONS, flyToRegion } from './regions.js';
-import { buildPanel, section } from './controls.js';
+import { buildPanel, section } from '../../shared/js/controls.js';
 import { createHud } from './hud.js';
-import { applyGrain } from './paper.js';
+import { applyGrain } from '../../shared/js/paper.js';
 import {
   applyPresetToPanel,
   applyQualityChange,
   qualityFields,
   styleFromValues,
   waterlineFields,
-} from './waterline-controls.js';
+} from '../../shared/js/waterline-controls.js';
 
 const DATA_URL = new URL('../../data/indonesia-land.geojson', import.meta.url).href;
 

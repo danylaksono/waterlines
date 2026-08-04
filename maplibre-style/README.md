@@ -48,7 +48,7 @@ node build-rings.mjs raja-ampat nautical
 land, a `line` layer reading `color`/`alpha`/`width` off the ring source, and
 a `line` layer for the coast. `app.js` is a minimal viewer that swaps between
 pre-generated region/preset combos with `map.setStyle`, same pattern as
-`../examples/js/basemap.js`.
+`../shared/js/basemap.js`.
 
 ## What this buys you, and what it costs
 
@@ -102,7 +102,7 @@ but ring *count and position* are fixed at build time.
   hachured relief - anything that's naturally "precompute geometry once,
   style with paint expressions" rather than "recompute every frame" is a
   candidate for living here rather than in `../src`. If this grows, it's a
-  natural complement to the interactive studio (`../examples/studio.html`):
+  natural complement to the interactive studio (`../studio/index.html`):
   the studio's live sliders for one kind of exploration, prebaked styles
   like this for a more "finished chart" look, potentially picked from the
-  same basemap-style switcher (`../examples/js/basemap.js`).
+  same basemap-style switcher (`../shared/js/basemap.js`).

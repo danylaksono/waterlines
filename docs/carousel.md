@@ -210,7 +210,7 @@ This is where the post pivots from cartography to systems.
 - 16.4 ms median with the overlay off, 16.7 ms with it on.
 - The honest caveat: 0.3 s to draft, up to ~4 s to fully sharpen at continental
   zoom — it just never blocks you.
-- Repo link; `examples/studio.html` for dropping in your own GeoJSON.
+- Repo link; `/studio` for dropping in your own GeoJSON.
 - Credits in full: Olivia Vane (technique), Andy Woodruff (the compositing
   groundwork), Nadieh Bremer (smoothing), Natural Earth (coastlines, public
   domain).

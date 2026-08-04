@@ -220,9 +220,9 @@ async function maplibre(browser) {
 }
 
 async function studio(browser) {
-  console.log('\n-- examples/studio.html');
+  console.log('\n-- studio/index.html');
   browser.errors.length = 0;
-  await browser.goto(`${BASE}/examples/studio.html`);
+  await browser.goto(`${BASE}/studio/index.html`);
   await browser.waitFor('window.__waterlinesStudio', 40000);
   await settleStudio(browser);
 
@@ -289,7 +289,7 @@ async function studio(browser) {
   // than trusting a success message. A headless download cannot be opened.
   await settleStudio(browser);
   const composite = JSON.parse(await browser.evaluate(`(async () => {
-    const { renderExportCanvas } = await import('/examples/js/export-png.js');
+    const { renderExportCanvas } = await import('/studio/js/export-png.js');
     const s = window.__waterlinesStudio;
     const canvas = await renderExportCanvas({ map: s.map, overlay: s.overlay });
     const ctx = canvas.getContext('2d');
@@ -318,7 +318,7 @@ async function studio(browser) {
 
   // The wind rose: on screen, turning with the bearing, and in the export.
   const rose = JSON.parse(await browser.evaluate(`(async () => {
-    const { renderExportCanvas } = await import('/examples/js/export-png.js');
+    const { renderExportCanvas } = await import('/studio/js/export-png.js');
     const s = window.__waterlinesStudio;
     const canvas = document.querySelector('#compass canvas');
 

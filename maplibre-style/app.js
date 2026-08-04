@@ -3,7 +3,7 @@
  *
  * Minimal viewer for the ring-baked MapLibre style. Swaps between the
  * pre-generated region/preset combos with `map.setStyle`, same pattern as
- * `examples/js/basemap.js`.
+ * `shared/js/basemap.js`.
  */
 
 import { ringStyle } from './style.mjs';
