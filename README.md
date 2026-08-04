@@ -281,6 +281,41 @@ The control panel folds away to a single `Controls` button — the toggle in its
 header, or the `H` key — for framing a view without the panel covering
 a quarter of it.
 
+### Rhumb lines
+
+The other thing an old chart has is the wind-rose web: the criss-crossing lines
+of a portolan. [`studio/js/rhumb.js`](studio/js/rhumb.js) generates it, and two
+facts make that cheap.
+
+The construction is ruler-and-compass. Mark 16 equidistant points on a hidden
+circle and join each to the others; the chord from vertex _j_ to vertex _k_ has
+bearing `11.25° × (j + k) + 90°`, always a point of the 32-wind compass. So the
+network is nothing more than "every line through a vertex whose bearing is a
+multiple of 11.25°, clipped to the sheet" — 136 distinct lines, 36 principal
+winds, 36 half, 64 quarter.
+
+And in Web Mercator a loxodrome _is_ a straight line, which is why this belongs
+to the map rather than to the canvas: a two-point `LineString` is at once a true
+constant-bearing rhumb and a straight line on screen, so the whole web is a
+GeoJSON source and three `line` layers — one per wind order, for the engravers'
+black/green/red — with no per-frame cost at all. It reaches the PNG export for
+free, because the export composites the map canvas.
+
+Two modes, and the difference is the interesting part:
+
+- **One rose** is what a chart actually had. Historically right, and it thins
+  out as you zoom into it, exactly as the original would.
+- **Lattice** puts a system in every quadtree cell instead, with the level
+  following the zoom. Because Web Mercator _is_ a quadtree, raising the level by
+  one per zoom step holds the weave at a constant size on screen — the same
+  picture at every scale, which no real chart could manage. Only the cells in
+  view are built, and it is rebuilt when the map settles.
+
+Ported from the `rhumb-rose` sandbox, which worked out the maths and compared
+three ways to deliver it — plain GeoJSON, baked vector tiles, and the
+scale-free lattice. This is the first with the third on top; at 136 lines a
+`geojson` source needs no tiling pipeline to keep up.
+
 ### Basemaps
 
 The examples ship four, chosen to show the overlay staying in register with
@@ -397,6 +432,7 @@ studio/          served at /studio; js/ is split by function:
   js/geojson-input.js    file, drag-drop and URL loading, with validation
   js/export-png.js       compositing and download
   js/compass.js          the engraved wind rose
+  js/rhumb.js            the portolan wind-rose network, as map layers
 tests/             unit tests for the pure maths
 ```
 

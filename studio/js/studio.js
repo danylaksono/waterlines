@@ -19,6 +19,7 @@ import { PLACEMENTS, createCompass } from './compass.js';
 import { applyGrain } from '../../shared/js/paper.js';
 import { attachDropZone, fetchGeoJson, parseGeoJson, readGeoJsonFile } from './geojson-input.js';
 import { exportPng } from './export-png.js';
+import { createRhumb } from './rhumb.js';
 import {
   applyPresetToPanel,
   applyQualityChange,
@@ -38,14 +39,18 @@ const SAMPLES = {
 };
 
 const ROSE = { radius: 62, inset: 18, placement: 'bottom-right' };
+const RHUMB = { radiusDeg: 14, opacity: 1 };
 
 const state = {
   map: null,
   overlay: null,
   compass: null,
+  rhumb: null,
   data: null,
   basemap: 'paper',
   panel: null,
+  rhumbPanel: null,
+  rhumbAnchored: false,
   exportValues: { scale: '1', grain: true, vignette: true, compass: true },
   applying: false,
   attribution: {},
@@ -94,6 +99,10 @@ async function boot() {
     placement: ROSE.placement,
     ink: BASEMAPS.paper.ink,
   });
+
+  // Off until asked for: it is a strong graphic device, and the page's default
+  // picture is the waterlines.
+  state.rhumb = createRhumb(state.map, { radiusDeg: RHUMB.radiusDeg, opacity: RHUMB.opacity });
 
   buildUi();
   useData(initial, { fit: false });
@@ -182,6 +191,7 @@ function buildUi() {
   state.panel = buildPanel(look, waterlineFields(initial, BASEMAPS.paper.ink), onStyleChange);
 
   buildRoseSection(section(root, 'Wind rose', false));
+  buildRhumbSection(section(root, 'Rhumb lines', false));
   buildExportSection(section(root, 'Export', true));
 
   const quality = section(root, 'Performance', false);
@@ -305,6 +315,145 @@ function buildRoseSection(body) {
       else if (name === 'inset') state.compass.setInset(value);
     }
   );
+}
+
+/**
+ * The portolan wind-rose network. Unlike the waterlines and the rose in the
+ * corner this is not canvas work at all - it is a GeoJSON source and three line
+ * layers, so it costs nothing per frame and reaches the export through the map
+ * canvas like any other basemap layer.
+ */
+function buildRhumbSection(body) {
+  const panel = buildPanel(
+    body,
+    [
+      {
+        name: 'enabled',
+        label: 'Draw rhumb lines',
+        type: 'checkbox',
+        value: false,
+      },
+      {
+        name: 'mode',
+        label: 'System',
+        type: 'buttons',
+        value: 'single',
+        options: [
+          { value: 'single', label: 'One rose', title: 'A single chart, as a portolan was drawn' },
+          {
+            value: 'lattice',
+            label: 'Lattice',
+            title: 'Repeat the rose on a world-aligned grid, so density holds at any zoom',
+          },
+        ],
+        hint:
+          'One system is historically right but thins out as you zoom in. The ' +
+          'lattice puts a rose in every quadtree cell instead, so the weave ' +
+          'holds its size at any scale — which no real chart did.',
+      },
+      {
+        name: 'radius',
+        label: 'Circle radius',
+        type: 'range',
+        min: 2,
+        max: 60,
+        step: 1,
+        value: RHUMB.radiusDeg,
+        format: (v) => `${v}°`,
+        hint:
+          'Degrees of longitude for one system. On the lattice there is no one ' +
+          'circle to measure, so it reads as apparent size and snaps to the ' +
+          'nearest quadtree level.',
+      },
+      { name: 'quarter', label: 'Quarter winds', type: 'checkbox', value: true },
+      { name: 'extend', label: 'Extend past the circle', type: 'checkbox', value: true },
+      {
+        name: 'ink',
+        label: 'Colour',
+        type: 'select',
+        value: 'historical',
+        options: [
+          { value: 'historical', label: 'Chart convention — black, green, red' },
+          { value: 'basemap', label: 'One ink, from the basemap' },
+        ],
+      },
+      {
+        name: 'opacity',
+        label: 'Weight',
+        type: 'range',
+        min: 0.2,
+        max: 1,
+        step: 0.05,
+        value: RHUMB.opacity,
+        format: (v) => `${Math.round(v * 100)}%`,
+      },
+    ],
+    (name, value) => {
+      if (name === 'enabled') {
+        // Anchor on the first switch-on, so the web arrives around whatever the
+        // user is looking at rather than at 0°N 0°E.
+        if (value && !state.rhumbAnchored) anchorRhumb();
+        state.rhumb.setEnabled(value);
+      } else if (name === 'mode') {
+        state.rhumb.setOptions({ lattice: value === 'lattice' });
+      } else if (name === 'radius') {
+        state.rhumb.setOptions({ radiusDeg: value });
+      } else if (name === 'quarter' || name === 'extend') {
+        state.rhumb.setOptions({ [name]: value });
+      } else if (name === 'ink') {
+        state.rhumb.setOptions({ ink: rhumbInk(value) });
+      } else if (name === 'opacity') {
+        state.rhumb.setOptions({ opacity: value });
+      }
+      setRhumbStatus();
+    }
+  );
+  state.rhumbPanel = panel;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'primary';
+  button.id = 'rhumb-anchor';
+  button.textContent = 'Anchor the rose at the map centre';
+  button.addEventListener('click', () => {
+    anchorRhumb();
+    setRhumbStatus();
+  });
+  body.appendChild(button);
+
+  const status = document.createElement('p');
+  status.className = 'hint';
+  status.id = 'rhumb-status';
+  body.appendChild(status);
+
+  // A lattice is rebuilt around the new view when the map settles, so the line
+  // count it reports moves with the map.
+  state.map.on('moveend', setRhumbStatus);
+}
+
+function anchorRhumb() {
+  const { lng, lat } = state.map.getCenter();
+  state.rhumb.anchorTo([lng, lat]);
+  state.rhumbAnchored = true;
+}
+
+/** @param {string} choice `historical`, or `basemap` for the basemap's ink */
+function rhumbInk(choice) {
+  return choice === 'basemap' ? BASEMAPS[state.basemap].ink : 'historical';
+}
+
+function setRhumbStatus() {
+  const status = document.getElementById('rhumb-status');
+  if (!status) return;
+  const stats = state.rhumb.getStats();
+  if (!stats.enabled) {
+    status.textContent = '';
+    return;
+  }
+  const [lng, lat] = stats.center;
+  status.textContent =
+    `${stats.features.toLocaleString()} lines, centred on ` +
+    `${lat.toFixed(2)}°, ${lng.toFixed(2)}°`;
 }
 
 /**
@@ -444,6 +593,7 @@ function setBasemap(key) {
   state.panel.set('color', basemap.ink);
   state.applying = false;
   state.compass.setColors(basemap.ink);
+  if (state.rhumbPanel) state.rhumb.setOptions({ ink: rhumbInk(state.rhumbPanel.values.ink) });
 
   state.map.once('styledata', () => {
     // The new style brings a fresh `land` source; point it at the loaded data.

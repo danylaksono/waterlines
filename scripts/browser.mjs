@@ -115,7 +115,12 @@ class Browser {
         this.errors.push(d.exception?.description || d.text);
       } else if (msg.method === 'Log.entryAdded') {
         const e = msg.params.entry;
-        if (e.level === 'error') this.errors.push(`${e.source}: ${e.text}`);
+        // The URL matters: a failed request says nothing about which server
+        // failed without it, and the suite tells its own 404s from a third
+        // party's by looking for a remote host in the message.
+        if (e.level === 'error') {
+          this.errors.push(`${e.source}: ${e.text}${e.url ? ` ${e.url}` : ''}`);
+        }
       }
     });
 

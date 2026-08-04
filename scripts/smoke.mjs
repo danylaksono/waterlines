@@ -405,6 +405,95 @@ async function studio(browser) {
   check('edge offset moves it on screen', rose.insetMoves, rose.insets);
   check('edge offset moves it in the export', rose.insetInExport);
 
+  // The rhumb network. Unlike the rose in the corner this is MapLibre
+  // geometry, so the checks are about layers existing, the controls reaching
+  // them, and the lines arriving in the export through the map canvas.
+  const rhumb = JSON.parse(await browser.evaluate(`(async () => {
+    const { renderExportCanvas } = await import('/studio/js/export-png.js');
+    const s = window.__waterlinesStudio;
+    const body = [...document.querySelectorAll('#panel-body details')]
+      .find((d) => d.querySelector('summary').textContent === 'Rhumb lines')
+      .querySelector('.section__body');
+    const mode = (v) => body.querySelector('button[data-value="' + v + '"]').click();
+    const layers = () =>
+      ['rhumb-principal', 'rhumb-half', 'rhumb-quarter'].filter((id) => s.map.getLayer(id)).length;
+
+    s.rhumbPanel.set('enabled', true);
+    const single = s.rhumb.getStats().features;
+    const added = layers();
+
+    s.rhumbPanel.set('quarter', false);
+    const noQuarter = s.rhumb.getStats().features;
+    s.rhumbPanel.set('quarter', true);
+
+    mode('lattice');
+    const lattice = s.rhumb.getStats().features;
+    mode('single');
+
+    const status = document.getElementById('rhumb-status').textContent;
+
+    // The lines are hairlines at partial opacity, so counting "reddish" pixels
+    // is at the mercy of the threshold. Differencing two exports is not: only
+    // the network changed between them.
+    const shot = async () => {
+      const canvas = await renderExportCanvas({ map: s.map, overlay: s.overlay });
+      return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    };
+    const withLines = await shot();
+    s.rhumbPanel.set('enabled', false);
+    const bare = await shot();
+    const removed = layers();
+    s.rhumbPanel.set('enabled', true);
+
+    let changed = 0;
+    let samples = 0;
+    for (let i = 0; i < withLines.length; i += 40) {
+      samples++;
+      if (Math.abs(withLines[i] - bare[i]) > 12) changed++;
+    }
+
+    return JSON.stringify({
+      single, noQuarter, lattice, added, removed, status,
+      changed: changed / samples,
+      anchored: s.rhumb.getStats().center,
+    });
+  })()`));
+  check('one rose is the historical 136 lines', rhumb.single === 136 && rhumb.added === 3,
+    `${rhumb.single} lines across ${rhumb.added} layers`);
+  check('dropping the quarter winds halves it', rhumb.noQuarter === 72, `${rhumb.noQuarter} lines`);
+  // How many cells land in the window depends on the window, so the invariant
+  // is whole systems repeating, not a count.
+  check('the lattice repeats the system', rhumb.lattice > rhumb.single && rhumb.lattice % 136 === 0,
+    `${rhumb.lattice / 136} roses across the view`);
+  check('the rose is anchored on the view', Math.abs(rhumb.anchored[1] - 45.4) < 2,
+    rhumb.anchored.map((v) => v.toFixed(1)).join(', '));
+  check('reports what it drew', /136 lines, centred/.test(rhumb.status), rhumb.status);
+  check('rhumb lines reach the export', rhumb.changed > 0.002,
+    `${(rhumb.changed * 100).toFixed(1)}% of sampled pixels differ from an export without them`);
+  check('switching it off removes the layers', rhumb.removed === 0);
+
+  // A style swap throws away everything added on top of it, so the network has
+  // to put itself back.
+  await browser.evaluate(`(() => {
+    const select = [...document.querySelectorAll('#panel-body select')]
+      .find((s) => [...s.options].some((o) => o.value === 'paper'));
+    select.value = 'paper';
+    select.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await sleep(4000);
+  await settleStudio(browser);
+  const survived = JSON.parse(await browser.evaluate(`(() => {
+    const s = window.__waterlinesStudio;
+    return JSON.stringify({
+      layers: ['rhumb-principal', 'rhumb-half', 'rhumb-quarter']
+        .filter((id) => s.map.getLayer(id)).length,
+      features: s.rhumb.getStats().features,
+    });
+  })()`));
+  check('rhumb lines survive a basemap swap', survived.layers === 3 && survived.features === 136,
+    `${survived.features} lines back across ${survived.layers} layers`);
+
   // Folding the panel away, so the map can be framed without the controls.
   const toggle = JSON.parse(await browser.evaluate(`(() => {
     const panel = document.getElementById('panel');
