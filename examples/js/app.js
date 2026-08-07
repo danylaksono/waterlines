@@ -35,6 +35,7 @@ const state = {
   land: null,
   basemap: 'paper',
   panel: null,
+  hud: null,
   applying: false,
   attribution: {},
 };
@@ -77,9 +78,17 @@ async function boot() {
   await once(state.map, 'load');
 
   const hud = createHud(document.getElementById('hud-body'));
+  state.hud = hud;
 
   state.overlay = new WaterlinesOverlay(state.map, {
     data: state.land,
+    // Pinned to the canvas renderer on purpose. The distance-field renderer is
+    // the faster one and is what `renderer: 'auto'` picks, but this page is
+    // also the reference for the 2D path's scheduling behaviour - the draft
+    // ladder, the raster cache, the frame budget in the HUD - none of which
+    // exist on the GL path because none of them need to. Switch it in the
+    // Performance panel, or see examples/renderer-comparison.html for both.
+    renderer: '2d',
     style: { preset: 'antique' },
     onFrame: (stats) => hud.update(stats),
   });
@@ -153,9 +162,38 @@ function buildUi() {
   );
 
   const quality = section(root, 'Performance', false);
-  buildPanel(quality, qualityFields(), (name, value, values) =>
-    applyQualityChange(state.overlay, name, value, values)
-  );
+  buildPanel(quality, qualityFields({ renderer: true }), (name, value, values) => {
+    if (name === 'renderer') return swapRenderer(value, values);
+    applyQualityChange(state.overlay, name, value, values);
+  });
+}
+
+/**
+ * Rebuild the overlay on the other renderer.
+ *
+ * A renderer owns a canvas and, on the GL path, a set of GPU resources, so
+ * switching means tearing one down and building the other rather than flipping
+ * a flag. Everything else - the map, the data, the panel - survives, which is
+ * the point of the two engines sharing a surface.
+ */
+function swapRenderer(renderer, values) {
+  const hud = state.hud;
+  state.overlay.remove();
+  state.overlay = new WaterlinesOverlay(state.map, {
+    data: state.land,
+    renderer,
+    style: currentStyle(),
+    onFrame: (stats) => hud.update(stats),
+    lod: {
+      curve: values.curve,
+      tolerancePx: values.tolerancePx,
+      minRingPx: values.minRingPx,
+    },
+  });
+  if (state.overlay.renderer !== renderer) {
+    document.getElementById('basemap-note').textContent =
+      'WebGL2 with float render targets is unavailable here, so the canvas renderer is still in use.';
+  }
 }
 
 function onStyleChange(name, value, values) {

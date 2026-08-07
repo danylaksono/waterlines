@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waterlines - stroke-and-erase vs distance field</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+  <style>
+    :root {
+      --paper: #efe8d8;
+      --ink: #2a2622;
+      --rule: #cec5b0;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--rule);
+    }
+    h1 { font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+    header p { margin: 0; max-width: 82ch; color: #5b5245; }
+    #panes { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+    .pane { position: relative; min-width: 0; }
+    .pane + .pane { border-left: 1px solid var(--rule); }
+    .map { position: absolute; inset: 0; }
+    .tag {
+      position: absolute; z-index: 2; top: 10px; left: 10px;
+      background: rgba(255,255,255,.9);
+      border: 1px solid var(--rule); border-radius: 4px;
+      padding: 6px 9px; font-size: 12px; line-height: 1.45;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+    .tag b { display: block; font-size: 13px; }
+    .tag .miss { color: #8a3a2a; }
+    #controls {
+      padding: 10px 18px; border-top: 1px solid var(--rule);
+      display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+    }
+    #controls label { display: flex; gap: 6px; align-items: center; }
+    input[type=range] { width: 150px; }
+    button {
+      font: inherit; padding: 4px 10px; border: 1px solid var(--rule);
+      background: #fff; border-radius: 4px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stroke-and-erase vs distance field</h1>
+    <p>
+      The same geometry, the same style, the same view - two renderers. Left is the
+      port of Olivia Vane's canvas method: N wide strokes, each with its middle erased.
+      Right computes the distance to the shore once per frame with a jump flood and
+      reads every waterline off it in a single pass. Drag either map; they stay in step.
+      Watch the counters when you raise the line count, and watch which one keeps
+      animating while you drag.
+    </p>
+  </header>
+
+  <div id="panes">
+    <div class="pane">
+      <div class="map" id="map-2d"></div>
+      <div class="tag" id="tag-2d"><b>2D &mdash; stroke and erase</b><span>starting&hellip;</span></div>
+    </div>
+    <div class="pane">
+      <div class="map" id="map-gl"></div>
+      <div class="tag" id="tag-gl"><b>GL &mdash; distance field</b><span>starting&hellip;</span></div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <label>Waterlines <input type="range" id="count" min="4" max="60" step="1" value="14">
+      <output id="count-out">14</output></label>
+    <label>Extent <input type="range" id="extent" min="10" max="140" step="1" value="46">
+      <output id="extent-out">46 px</output></label>
+    <label><input type="checkbox" id="animate"> Animate</label>
+    <button id="fit">Reset view</button>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script type="module" src="js/comparison.js"></script>
+</body>
+</html>

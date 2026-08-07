@@ -26,6 +26,7 @@
  */
 
 import { WaterlineEngine } from '../render/WaterlineEngine.js';
+import { createEngine } from '../render/createEngine.js';
 import { latToMercatorY, lngToMercatorX, worldSize } from '../core/mercator.js';
 import { affineEquals, affineFromViewport, solve } from './transform.js';
 
@@ -35,7 +36,9 @@ export class WaterlinesDeckOverlay {
    *   `container` should be the positioned element deck's canvas lives in.
    */
   constructor(options = {}) {
-    this.engine = new WaterlineEngine(options);
+    this.engine = createEngine(options);
+    /** Which renderer is actually running: 'gl' or '2d'. */
+    this.renderer = this.engine instanceof WaterlineEngine ? '2d' : 'gl';
     this._container = options.container;
     this._matrix = null;
     this.syncSize();

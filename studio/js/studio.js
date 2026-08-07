@@ -90,6 +90,11 @@ async function boot() {
 
   state.overlay = new WaterlinesOverlay(state.map, {
     data: initial.geojson,
+    // The canvas renderer, not the faster distance-field one, because the PNG
+    // export composites the overlay canvas with `drawImage`. A WebGL canvas
+    // running without `preserveDrawingBuffer` has no readable pixels once the
+    // frame is composited, so that export would silently come out blank.
+    renderer: '2d',
     style: { preset: 'antique' },
   });
 

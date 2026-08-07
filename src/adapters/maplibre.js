@@ -17,12 +17,13 @@
  */
 
 import { WaterlineEngine } from '../render/WaterlineEngine.js';
+import { createEngine } from '../render/createEngine.js';
 import { affineEquals, affineFromMap } from './transform.js';
 
 export class WaterlinesOverlay {
   /**
    * @param {Object} map MapLibre GL map instance
-   * @param {import('../render/WaterlineEngine.js').EngineOptions} [options]
+   * @param {import('../render/WaterlineEngine.js').EngineOptions & {renderer?:'auto'|'gl'|'2d'}} [options]
    *   (minus `container`, which is taken from the map)
    */
   constructor(map, options = {}) {
@@ -35,11 +36,13 @@ export class WaterlinesOverlay {
       ? map.getCanvasContainer()
       : map.getContainer();
 
-    this.engine = new WaterlineEngine({
+    this.engine = createEngine({
       ...options,
       container,
       onInvalidate: () => map.triggerRepaint(),
     });
+    /** Which renderer is actually running: 'gl' or '2d'. */
+    this.renderer = this.engine instanceof WaterlineEngine ? '2d' : 'gl';
 
     this._container = container;
     this._matrix = null;

@@ -97,9 +97,31 @@ export function waterlineFields(initial, ink) {
   ];
 }
 
-/** @returns {import('./controls.js').Field[]} */
-export function qualityFields() {
+/**
+ * @param {Object} [options]
+ * @param {boolean} [options.renderer=false] offer the renderer switch. Off by
+ *   default because swapping renderers means rebuilding the overlay, and a
+ *   host that reads pixels back out of the canvas - the studio's PNG export -
+ *   cannot use the GL one as things stand.
+ * @returns {import('./controls.js').Field[]}
+ */
+export function qualityFields(options = {}) {
   return [
+    ...(options.renderer
+      ? [
+          {
+            name: 'renderer',
+            label: 'Renderer',
+            type: 'select',
+            value: '2d',
+            options: [
+              { value: '2d', label: 'Canvas - stroke and erase' },
+              { value: 'gl', label: 'WebGL - distance field' },
+            ],
+            hint: 'The distance field draws every waterline in one pass, so the line count is free and the picture stays exact while you zoom. The settings below apply to the canvas renderer only.',
+          },
+        ]
+      : []),
     {
       name: 'curve',
       label: 'Smoothing',
@@ -280,6 +302,10 @@ export function applyPresetToPanel(panel, preset, suspend, resume) {
  */
 export function applyQualityChange(overlay, name, value, values) {
   switch (name) {
+    // 'renderer' is handled by the page, which owns the overlay it has to
+    // rebuild; there is nothing sensible to do with it here.
+    case 'renderer':
+      break;
     case 'curve':
     case 'tolerancePx':
     case 'minRingPx':
