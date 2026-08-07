@@ -26,6 +26,7 @@ export {
 } from './adapters/transform.js';
 
 // Engine & rendering
+export { createEngine } from './render/createEngine.js';
 export { WaterlineEngine } from './render/WaterlineEngine.js';
 export { WaterlineRenderer, matrixScale } from './render/WaterlineRenderer.js';
 export { VisiblePathCache } from './render/VisiblePathCache.js';
@@ -40,6 +41,12 @@ export {
   resolveStyle,
 } from './render/style.js';
 export { clamp, linearScale, powScale } from './render/scales.js';
+
+// Distance-field renderer
+export { WaterlineGLEngine, GLUnavailableError } from './gl/WaterlineGLEngine.js';
+export { WaterlineGLRenderer, matrixToMat3 } from './gl/WaterlineGLRenderer.js';
+export { RingVertexSink, buildLevelMesh } from './gl/geometry.js';
+export { floodSteps, parseColor } from './gl/glutil.js';
 
 // Geometry
 export { LodPyramid } from './core/LodPyramid.js';

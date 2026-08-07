@@ -280,6 +280,20 @@ export class WaterlineEngine {
     return { ...this._stats, sourceVertices: this.sourceVertices };
   }
 
+  /**
+   * A readable copy of the current picture, for compositing into an export.
+   *
+   * A 2D canvas is readable whenever you like, so this is the canvas itself.
+   * It exists to match `WaterlineGLEngine#snapshot`, where getting readable
+   * pixels back out is genuinely work - so an export can ask both renderers
+   * the same question.
+   *
+   * @returns {HTMLCanvasElement|null}
+   */
+  snapshot() {
+    return this.visible ? this.canvas : null;
+  }
+
   // ------------------------------------------------------------------------
   // frame
   // ------------------------------------------------------------------------

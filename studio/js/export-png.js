@@ -6,10 +6,12 @@
  * Three things make this less trivial than `canvas.toDataURL()`:
  *
  *  1. The picture is two canvases - MapLibre's WebGL one and the waterlines'
- *    2D one - which have to be composited in the right order.
+ *     own - which have to be composited in the right order.
  *  2. WebGL clears its drawing buffer after compositing unless the map was
  *     created with `preserveDrawingBuffer: true`. Without it the map layer
- *     reads back as transparent, so the studio page opts in.
+ *     reads back as transparent, so the studio page opts in. The waterlines
+ *     overlay solves the same problem differently, through `snapshot()`, so
+ *     that its own rendering stays fast - see `WaterlineGLEngine#snapshot`.
  *  3. The overlay may be sitting on a bitmap rendered at reduced resolution,
  *     or mid-refresh. Exporting has to wait for a full-quality one.
  *
@@ -82,8 +84,12 @@ export async function renderExportCanvas(options) {
 
     ctx.drawImage(mapCanvas, 0, 0, width, height);
 
-    const overlayCanvas = overlay.engine.canvas;
-    if (overlayCanvas && overlay.engine.visible) {
+    // `snapshot()` rather than the overlay's own canvas: on the distance-field
+    // renderer the live canvas is a WebGL drawing buffer, which reads back as
+    // transparent once the frame has been composited. Both renderers answer
+    // this with a canvas that can be drawn from.
+    const overlayCanvas = overlay.snapshot();
+    if (overlayCanvas) {
       // The overlay's backing store follows its own pixel ratio, so let
       // drawImage rescale it to the map's.
       ctx.drawImage(overlayCanvas, 0, 0, width, height);

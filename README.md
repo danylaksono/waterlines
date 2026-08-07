@@ -24,6 +24,7 @@ Examples:
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | [`examples/indonesia-maplibre.html`](examples/indonesia-maplibre.html) | The main one. Waterlines over Nusantara with style controls, four basemaps and a live frame-budget readout. |
 | [`studio/index.html`](studio/index.html) (served at `/studio`)         | The same map and panel, plus: drop in your own GeoJSON, and save the result as a PNG.                       |
+| [`examples/renderer-comparison.html`](examples/renderer-comparison.html) | The canvas renderer and the distance-field renderer side by side on one view.                             |
 | [`examples/indonesia-deckgl.html`](examples/indonesia-deckgl.html)     | The same engine driven by a deck.gl viewport.                                                               |
 | [`examples/still-gallery.html`](examples/still-gallery.html)           | No map: geometry fitted to a box, like the original notebook.                                               |
 
@@ -58,6 +59,54 @@ for (let i = 0; i <= count; i++) {
 ```
 
 Stroking a path with a pen `w` wide covers everything within `w/2` of it.
+
+### Two renderers
+
+That loop is the **canvas renderer**, and it is a direct port of the notebook.
+There is now a second one, and it is worth knowing which you are using.
+
+Look at the loop again: every pass keeps the pixels whose distance to the shore
+falls in a band. All N passes are slices of _one function_ — the distance to
+the shore. Compute that function per pixel and every waterline can be read off
+it in a single pass:
+
+```glsl
+float d   = distanceToShore(uv);              // jump flood, once per frame
+float idx = pow((d - extent) / (inset - extent), 1.0 / spacing) * n;
+float r    = radiusOf(floor(idx + 0.5));      // nearest waterline, exactly
+alpha      = 1.0 - smoothstep(halfWidth, halfWidth + 0.5, abs(d - r));
+```
+
+`N` leaves the cost model entirely. Measured on an Intel Arc integrated GPU at
+1440×900, time to produce one complete full-resolution picture:
+
+| waterlines | canvas | WebGL |
+| --- | --- | --- |
+| 4 | 610 ms | 1.43 ms |
+| 16 | 1107 ms | 1.45 ms |
+| 64 | 4214 ms | 1.43 ms |
+
+The ratio is not the point; the **slope** is. Linear versus flat. And because a
+fresh picture costs about a millisecond, the GL path needs none of the
+machinery the canvas path needs to stay interactive — no raster cache, no draft
+ladder, no step scheduler, no precomputed animation frames. It just draws,
+every frame, exactly.
+
+Both are kept. `renderer: 'auto'` (the default) picks WebGL where it is
+available and falls back to canvas where it is not:
+
+```js
+new WaterlinesOverlay(map, { data: land, renderer: "auto" }); // gl if possible
+new WaterlinesOverlay(map, { data: land, renderer: "2d" }); // always canvas
+```
+
+The canvas renderer is not vestigial. It runs anywhere a canvas does, its
+pixels are readable so it is what the studio's PNG export uses, and it is the
+reference the GL path is checked against. It also composites overlapping bands
+slightly differently — arguably less correctly, and arguably more attractively.
+Judge for yourself at [`examples/renderer-comparison.html`](examples/renderer-comparison.html),
+which runs both side by side on the same view. The full account is in
+[`docs/methodology.md` §4B](docs/methodology.md).
 Erasing a slightly narrower stroke leaves a thin rim at exactly `w/2` — a
 waterline, at a known distance from the shore, produced entirely by the
 rasteriser. Repeat with a narrowing pen and the rings nest inside each other.
