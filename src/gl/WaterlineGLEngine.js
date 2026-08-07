@@ -239,6 +239,7 @@ export class WaterlineGLEngine {
     });
 
     this._lastLevel = level;
+    this._lastMatrix = matrix;
     this._dirty = false;
 
     this._stats = {
@@ -257,6 +258,59 @@ export class WaterlineGLEngine {
     };
     if (this.options.onFrame) this.options.onFrame(this._stats);
     return this._stats;
+  }
+
+  /**
+   * A readable copy of the current picture, for compositing into an export.
+   *
+   * This exists because a WebGL drawing buffer is not readable once the frame
+   * has been composited - `drawImage` on the canvas afterwards yields
+   * transparent pixels. The usual workaround, `preserveDrawingBuffer: true`,
+   * makes the browser keep a copy of every frame forever to serve a readback
+   * that happens once in a session; the cost lands on interaction, which is
+   * the one thing this renderer exists to protect.
+   *
+   * So instead: render and read back inside a single task, while the buffer is
+   * still live. The result is an ordinary 2D canvas that behaves like the 2D
+   * renderer's, which is what lets the export path treat both the same.
+   *
+   * @returns {HTMLCanvasElement|null} null when there is nothing to show
+   */
+  snapshot() {
+    if (!this.visible || !this.width || !this.height || !this._lastMatrix) return null;
+
+    this.render(this._lastMatrix, { moving: false });
+
+    const gl = this.renderer.gl;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    const pixels = new Uint8Array(w * h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+    const out = document.createElement('canvas');
+    out.width = w;
+    out.height = h;
+    const image = out.getContext('2d').createImageData(w, h);
+    const data = image.data;
+
+    for (let y = 0; y < h; y++) {
+      // readPixels counts rows from the bottom, ImageData from the top.
+      const src = (h - 1 - y) * w * 4;
+      const dst = y * w * 4;
+      for (let x = 0; x < w * 4; x += 4) {
+        const a = pixels[src + x + 3];
+        if (a === 0) continue;
+        // The drawing buffer is premultiplied; ImageData is not.
+        const k = 255 / a;
+        data[dst + x] = Math.min(255, pixels[src + x] * k);
+        data[dst + x + 1] = Math.min(255, pixels[src + x + 1] * k);
+        data[dst + x + 2] = Math.min(255, pixels[src + x + 2] * k);
+        data[dst + x + 3] = a;
+      }
+    }
+    out.getContext('2d').putImageData(image, 0, 0);
+    return out;
   }
 
   /**

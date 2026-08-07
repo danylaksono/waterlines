@@ -100,9 +100,11 @@ export function waterlineFields(initial, ink) {
 /**
  * @param {Object} [options]
  * @param {boolean} [options.renderer=false] offer the renderer switch. Off by
- *   default because swapping renderers means rebuilding the overlay, and a
- *   host that reads pixels back out of the canvas - the studio's PNG export -
- *   cannot use the GL one as things stand.
+ *   default because swapping renderers means rebuilding the overlay, which
+ *   only a host that owns the overlay can do.
+ * @param {'gl'|'2d'} [options.value='2d'] which renderer is running now. Pass
+ *   the overlay's actual `renderer`, not what was asked for: `auto` may have
+ *   fallen back, and a control that shows the wrong answer is worse than none.
  * @returns {import('./controls.js').Field[]}
  */
 export function qualityFields(options = {}) {
@@ -113,7 +115,7 @@ export function qualityFields(options = {}) {
             name: 'renderer',
             label: 'Renderer',
             type: 'select',
-            value: '2d',
+            value: options.value || '2d',
             options: [
               { value: '2d', label: 'Canvas - stroke and erase' },
               { value: 'gl', label: 'WebGL - distance field' },
@@ -171,9 +173,14 @@ export function qualityFields(options = {}) {
 }
 
 /**
- * Animation controls. Separate from the quality panel because switching this
- * on changes what the overlay costs by an order of magnitude - see
- * `WaterlineEngine#setAnimation`.
+ * Animation controls.
+ *
+ * Kept separate from the quality panel because on the canvas renderer this
+ * changes what the overlay costs by an order of magnitude - see
+ * `WaterlineEngine#setAnimation`. On the distance-field renderer it costs
+ * nothing at all, the phase being one shader uniform, which is why the hints
+ * name the renderer they apply to rather than stating one behaviour as if it
+ * were universal.
  *
  * @returns {import('./controls.js').Field[]}
  */
@@ -184,7 +191,7 @@ export function animationFields() {
       label: 'Animate the waterlines',
       type: 'checkbox',
       value: false,
-      hint: 'Settling on a new view renders a whole loop of frames, so it takes longer to appear. Playback itself is free.',
+      hint: 'Free on the WebGL renderer, and it keeps running while you pan. On the canvas renderer a whole loop of frames is rendered per view, so it pauses while the map moves and takes longer to appear.',
     },
     {
       name: 'direction',
@@ -215,7 +222,7 @@ export function animationFields() {
       step: 1,
       value: 12,
       format: (v) => `${v}`,
-      hint: 'Smoother, and proportionally more memory and more work per view.',
+      hint: 'Canvas renderer only: smoother, and proportionally more memory and more work per view. The WebGL renderer is continuous and ignores this.',
     },
   ];
 }

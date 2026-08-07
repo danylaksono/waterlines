@@ -95,6 +95,17 @@ export class WaterlinesOverlay {
     return this.engine.getStats();
   }
 
+  /**
+   * A readable canvas holding the current waterlines, whichever renderer is
+   * running. See `WaterlineGLEngine#snapshot` for why this is not simply
+   * `engine.canvas`.
+   *
+   * @returns {HTMLCanvasElement|null}
+   */
+  snapshot() {
+    return this.engine.snapshot();
+  }
+
   /** Force a redraw on the next map frame. */
   redraw() {
     return this._refresh();

@@ -1,7 +1,7 @@
 # Methodology
 
-*Rendering cartographic waterlines over an interactive web map by
-raster stroke expansion*
+*Rendering cartographic waterlines over an interactive web map: raster stroke
+expansion and a distance-field formulation*
 
 This document records the methods used in this repository, the reasoning
 behind them, the measurements that drove the design, and — at least as
@@ -9,10 +9,10 @@ usefully — the approaches that were tried and abandoned. It is written as
 source material for a paper rather than as user documentation; for the latter
 see the [README](../README.md).
 
-> **On the references.** The citations below are to work I believe is real and
-> relevant, given with enough detail to locate. Bibliographic details (page
-> numbers, volume numbers, exact titles) should be verified against the
-> originals before publication. Where I am uncertain about a detail I say so.
+> **On the references.** Citations are given with enough detail to locate the
+> source. Bibliographic details — page numbers, volume numbers, exact titles —
+> have not been checked against the originals and should be verified before
+> publication. Two attributions are flagged in place as uncertain.
 
 ---
 
@@ -25,20 +25,37 @@ the shoreline, separate land from water at a glance, and give the sea a
 texture. They are ornament with a job.
 
 The technique in this repository is Olivia Vane's, from her Observable notebook
-*Drawing waterlines on maps* [V1]. The contribution here is not the visual
-effect but the **engineering required to run it on a live, pannable, zoomable
-map at 60 fps**, which turns out to require a different architecture from the
-one a static image needs.
+*Drawing waterlines on maps* [V1]. The contribution is not the visual effect
+but the **engineering required to run it on a live, pannable, zoomable map at
+60 fps**, which requires a different architecture from the one a static image
+needs.
 
-The claim being made, precisely:
+Two renderers are documented, and the distinction runs through the whole
+report.
 
-> Waterlines can be rendered as a 2D-canvas overlay on a WebGL map such that
-> the map's interaction frame rate is statistically indistinguishable from the
-> same map with no overlay, at every zoom level, including while the overlay is
-> re-rendering.
+- The **canvas renderer** (§4) is a direct port of the notebook: $N$ wide
+  strokes, each with its middle erased by `destination-out`. Cost is linear in
+  $N$ and high enough that the greater part of §4.6–§4.8 exists to schedule it
+  around the interaction.
+- The **distance-field renderer** (§4B) computes the distance to the coast once
+  per frame on the GPU and derives every waterline from it in a single pass.
+  Cost is independent of $N$, and most of that scheduling apparatus ceases to
+  be necessary.
 
-Section 7 gives the measurements supporting that claim, and Section 10 states
-what it does *not* claim.
+Two claims are made, and they are separate.
+
+> **C1.** Waterlines can be rendered as a canvas overlay on a WebGL map such
+> that the map's interaction frame rate is statistically indistinguishable from
+> the same map with no overlay, at every zoom level, including while the
+> overlay is re-rendering.
+>
+> **C2.** Reformulating the same technique as an isoline family of a
+> screen-space distance field removes the waterline count from the cost model
+> entirely, and with it the caching, drafting and scheduling machinery that
+> C1 required.
+
+Section 7 gives the measurements supporting C1 and §4B.3 those supporting C2.
+Section 10 states what neither claims.
 
 ---
 
@@ -169,7 +186,7 @@ merging) require no special handling whatsoever. The medial-axis structure (P2)
 emerges automatically.
 
 **What is given up.** The result is a raster, not a vector. There is no path
-you can export, hit-test, or label along. And the band is only as accurate as
+to export, hit-test, or label along. And the band is only as accurate as
 the rasteriser's stroke tessellation.
 
 **Ordering is not free.** Pass $i+1$ erases a disc of radius $d_{i+1} < d_i$,
@@ -254,7 +271,7 @@ the cost analysis in Section 5 tractable.
 
 (A geographic parameterisation is a trivial variant: fix $E$ in metres and
 convert per frame. It is not implemented because it is not what the effect is
-for, and because it makes the cost unbounded as you zoom in.)
+for, and because it makes the cost unbounded under continued zoom.)
 
 ### 4.4 Coordinate system, and the affine property
 
@@ -392,7 +409,7 @@ Barry and Goldman's recursive evaluation [BG1].
 
 #### 4.5.4 Flattening the curve, and the join policy
 
-The cubics are **flattened to line segments in our own code**, not handed to
+The cubics are **flattened to line segments by the renderer itself**, not handed to
 the canvas as curves. Uniform subdivision is used, with the segment count taken
 from the standard second-difference error bound: for a cubic with second
 differences $\Delta^2 P_0 = P_0 - 2P_1 + P_2$ and $\Delta^2 P_1 = P_1 - 2P_2 +
@@ -408,9 +425,9 @@ $$
 
 This bound is commonly known as *Wang's formula* and is standard in path
 rendering; it appears in the GPU path-rendering literature [K1] and in modern
-vector renderers. (I am confident about the formula and its use; the primary
-attribution — usually given as Wang, G.-J., 1984, on Bézier subdivision — is
-one I would verify before citing.)
+vector renderers. The formula and its application are well established; the
+primary attribution — usually given as Wang, G.-J., 1984, on Bézier
+subdivision — is unverified here.
 
 Adaptive subdivision would be the textbook choice, but the spans here are short
 hops between adjacent coastline vertices where adaptivity buys nothing, and
@@ -419,8 +436,8 @@ uniform subdivision is branch-free and allocation-free.
 The reason for flattening at all is empirical and is discussed in §8.5: the
 first `stroke()` of a `Path2D` containing ~9,000 cubics cost 1.6 s, because
 that is when the rasteriser flattens it, and the combined path is rebuilt
-whenever the visible ring set changes. Moving the flattening into our own code
-makes it a once-per-LOD cost we control.
+whenever the visible ring set changes. Moving the flattening into renderer code
+makes it a once-per-LOD cost under the implementation's control.
 
 Flattening alone, however, made matters **worse** (§8.5), because round joins on
 a path of tens of thousands of short segments generate a great deal of extra
@@ -739,7 +756,7 @@ Three limitations from §10 are resolved outright:
   while the map moves (§4.9.2). The GL path does not, because a moving frame
   costs the same as a still one.
 
-Honest costs of the new path:
+Costs of the new path:
 
 1. **Requires WebGL2 with float render targets.** Seeds are *coordinates*;
    16-bit floats lose integer precision above 2048, which is inside an ordinary
@@ -748,9 +765,17 @@ Honest costs of the new path:
 2. **Memory is two RG32F viewport buffers** (about 10 MB each at 1440×900) plus
    an R8 mask — held permanently, where the canvas path's two RGBA8 buffers are
    comparable. Not a regression, but not free either.
-3. **Pixels are not readable after compositing** without
-   `preserveDrawingBuffer`, which is why the studio's PNG export still uses the
-   canvas renderer (§11).
+3. **Pixels are not readable after compositing.** A WebGL drawing buffer is
+   discarded once the frame is composited, so `drawImage` on the overlay canvas
+   afterwards yields transparent pixels — which is how an export silently
+   produces a blank layer. `preserveDrawingBuffer: true` would fix it by making
+   the browser retain a copy of *every* frame in order to serve a readback that
+   happens once per session; the cost falls on interaction, which is what this
+   renderer exists to protect. The implementation instead exposes `snapshot()`,
+   which renders and reads back within a single task while the buffer is still
+   live, and returns an ordinary 2D canvas. Both engines implement it, so the
+   export path is renderer-agnostic. The cost is one full readback plus an
+   un-premultiply pass, paid only when exporting.
 4. **Corner and merge behaviour differs.** A true Euclidean field rounds convex
    corners and resolves concave ones on the medial axis, where the canvas path
    uses bevel joins on a smoothed curve. Measured agreement between the two at
@@ -759,17 +784,27 @@ Honest costs of the new path:
    entirely sub-pixel line placement, which is what that metric is most
    sensitive to.
 
-### 4B.5 Why both are kept
+### 4B.5 Why both are retained
 
-Not sentiment. The canvas renderer runs where WebGL2 does not, produces the
-print stills through a readable canvas, and is the **reference implementation**
-the GL path is checked against — a shader that silently draws nothing is a
-failure mode with no analogue in Canvas2D, and having a known-good picture to
-diff against is what caught two such bugs during development. It is also the
-direct port of the notebook, and therefore the artefact that documents the
-original technique.
+The canvas renderer is retained for four reasons, none of them sentimental.
 
-`renderer: 'auto'` selects GL where available and falls back silently.
+1. **Coverage.** It runs wherever a 2D canvas does, which is everywhere;
+   the GL path requires WebGL2 with float render targets.
+2. **Reference implementation.** A shader that silently draws nothing is a
+   failure mode with no analogue in Canvas2D — two such defects during
+   development (an unbound renderbuffer, and a vertex array bound against a
+   different program's attribute slot) produced a blank overlay and no error.
+   Having a known-good picture to difference against is what localised both.
+3. **Provenance.** It is the direct port of [V1], and therefore the artefact
+   that documents the original technique.
+4. **Appearance.** The approximate compositing of §10.3 is a visual property of
+   the canvas method, not merely a defect of it.
+
+Selection is by the `renderer` option: `'gl'`, `'2d'`, or `'auto'` (the
+default), which uses the GL path where the platform supports it and falls back
+otherwise. Both engines present the same interface, so the choice is invisible
+to callers — including `snapshot()`, which returns readable pixels from either
+and is what allows the studio's PNG export to work on both (§4B.4, cost 3).
 
 ---
 
@@ -990,7 +1025,8 @@ commit timestamps duly reported 17 ms for the whole job — measuring submission
 not completion — while the page locked up for seconds. Reverted to a single
 budget.
 
-This is the same trap as §8.2 wearing a different hat, and it caught me twice.
+This is the same trap as §8.2 in a different guise: a measurement that reports
+submission while presenting itself as completion.
 
 ### 8.7 Ignoring canvas allocation
 
@@ -1076,10 +1112,6 @@ reduce geometry as well.
   genuine deck.gl layer or a MapLibre `CustomLayerInterface`. Becoming the
   latter would resolve limitation 5, letting waterlines sit *beneath* basemap
   labels instead of over everything.
-- **Readable pixels on the GL path.** The studio's PNG export composites the
-  overlay canvas, which a WebGL context without `preserveDrawingBuffer` cannot
-  supply after compositing. A `snapshot()` that renders and reads back inside
-  one task would let the studio use the faster renderer (§4B.4, cost 3).
 - **Perceptual comparison of the two renderers.** §4B.4 reports 77% pixel
   agreement and a known difference at corners and band overlaps. Whether the
   exact field or the approximate compositing looks *better* is an open question
@@ -1101,8 +1133,9 @@ reduce geometry as well.
 
 ```sh
 npm run data              # rebuild data/ from Natural Earth
-npm test                  # 19 unit tests: mercator, RDP, curves, scales, affine
-node scripts/smoke.mjs    # 25 end-to-end browser checks, prints the timings
+npm test                  # 41 unit tests: mercator, RDP, curves, scales, affine,
+                          #   animation phase, GPU mesh packing, flood schedule
+node scripts/smoke.mjs    # end-to-end browser checks, prints the timings
 node scripts/smoke.mjs --swift   # same, on SwiftShader
 ```
 
@@ -1113,8 +1146,20 @@ node scripts/smoke.mjs --swift   # same, on SwiftShader
   Playwright or Puppeteer, so the harness has no version drift.
 - Unit tests cover the mathematics that can be checked without a browser:
   mercator round-trips and clamping, RDP behaviour on closed rings, Catmull–Rom
-  control-point placement and flattening tolerance, `scalePow` semantics, and
-  the affine solve/invert pair including under rotation.
+  control-point placement and flattening tolerance, `scalePow` semantics, the
+  affine solve/invert pair including under rotation, the animation phase
+  identities of §4.9.1, and — for the GL path — mesh packing, the flood
+  schedule of §4B.2, colour parsing and the transform of §4B.
+- The GL path's rasterisation is not unit-testable without a GPU. It is
+  verified in the browser against the canvas renderer at a shared view
+  (§4B.4), and `examples/renderer-comparison.html` runs both side by side under
+  one camera for visual inspection.
+- **Benchmark protocol for §4B.3.** Each renderer is swept separately, never
+  interleaved. Chrome rasterises a 2D canvas on the same GPU, so a `readPixels`
+  flush issued shortly after a heavy canvas refresh waits behind that work as
+  well; measuring the two alternately inflated the GL figures by roughly an
+  order of magnitude at high $N$. GL timings force a pipeline drain before
+  stopping the clock, for the reason given in §8.2.
 
 Versions used: MapLibre GL 5.24.0, deck.gl 9.1.14, Node 22, Chrome headless
 (ANGLE/D3D11).
@@ -1183,8 +1228,8 @@ Versions used: MapLibre GL 5.24.0, deck.gl 9.1.14, Node 22, Chrome headless
   — the `curveCatmullRomClosed` and `scalePow` formulations ported here.
 
 *Wang's formula for Bézier flattening (§4.5.4) is standard in this literature;
-the usual primary attribution is to G.-J. Wang (1984) on Bézier subdivision,
-which I would verify before citing.*
+the usual primary attribution is to G.-J. Wang (1984) on Bézier subdivision.
+This attribution is unverified.*
 
 **Rasterisation and compositing**
 

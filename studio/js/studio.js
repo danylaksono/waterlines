@@ -21,6 +21,8 @@ import { attachDropZone, fetchGeoJson, parseGeoJson, readGeoJsonFile } from './g
 import { exportPng } from './export-png.js';
 import { createRhumb } from './rhumb.js';
 import {
+  animationFields,
+  applyAnimationChange,
   applyPresetToPanel,
   applyQualityChange,
   qualityFields,
@@ -49,6 +51,7 @@ const state = {
   data: null,
   basemap: 'paper',
   panel: null,
+  motionPanel: null,
   rhumbPanel: null,
   rhumbAnchored: false,
   exportValues: { scale: '1', grain: true, vignette: true, compass: true },
@@ -88,13 +91,15 @@ async function boot() {
 
   await new Promise((resolve) => state.map.once('load', resolve));
 
+  // The distance-field renderer where the machine can run it, falling back to
+  // the canvas one where it cannot. The studio is the page a visitor is most
+  // likely to arrive at, and it should be the fast one by default; `Renderer`
+  // in the Performance panel switches back. Export works on either, through
+  // `overlay.snapshot()`.
+  state.renderer = 'auto';
   state.overlay = new WaterlinesOverlay(state.map, {
     data: initial.geojson,
-    // The canvas renderer, not the faster distance-field one, because the PNG
-    // export composites the overlay canvas with `drawImage`. A WebGL canvas
-    // running without `preserveDrawingBuffer` has no readable pixels once the
-    // frame is composited, so that export would silently come out blank.
-    renderer: '2d',
+    renderer: state.renderer,
     style: { preset: 'antique' },
   });
 
@@ -195,14 +200,58 @@ function buildUi() {
   const look = section(root, 'Waterlines', true);
   state.panel = buildPanel(look, waterlineFields(initial, BASEMAPS.paper.ink), onStyleChange);
 
+  const motion = section(root, 'Motion', false);
+  state.motionPanel = buildPanel(motion, animationFields(), (name, value, values) =>
+    applyAnimationChange(state.overlay, name, value, values)
+  );
+
   buildRoseSection(section(root, 'Wind rose', false));
   buildRhumbSection(section(root, 'Rhumb lines', false));
   buildExportSection(section(root, 'Export', true));
 
   const quality = section(root, 'Performance', false);
-  buildPanel(quality, qualityFields(), (name, value, values) =>
-    applyQualityChange(state.overlay, name, value, values)
+  buildPanel(
+    quality,
+    qualityFields({ renderer: true, value: state.overlay.renderer }),
+    (name, value, values) => {
+      if (name === 'renderer') return swapRenderer(value, values);
+      applyQualityChange(state.overlay, name, value, values);
+    }
   );
+}
+
+/**
+ * Rebuild the overlay on the other renderer.
+ *
+ * A renderer owns a canvas and, on the GL path, a set of GPU resources, so
+ * switching means tearing one down and building the other rather than setting
+ * a flag. The map, the data and the panel all survive - which is the point of
+ * the two engines presenting the same surface - but the *overlay* does not, so
+ * anything that lives on it has to be re-applied. That is the animation: the
+ * panel still shows it switched on, so it had better still be running.
+ */
+function swapRenderer(renderer, values) {
+  const data = state.data ? state.data.geojson : null;
+  state.overlay.remove();
+  state.overlay = new WaterlinesOverlay(state.map, {
+    data,
+    renderer,
+    style: currentStyle(),
+    lod: {
+      curve: values.curve,
+      tolerancePx: values.tolerancePx,
+      minRingPx: values.minRingPx,
+    },
+  });
+  if (state.motionPanel) {
+    applyAnimationChange(state.overlay, 'animate', null, state.motionPanel.values);
+  }
+  if (state.overlay.renderer !== renderer) {
+    setStatus(
+      'WebGL2 with float render targets is unavailable here, so the canvas renderer is still in use.',
+      true
+    );
+  }
 }
 
 function buildDataSection(body) {

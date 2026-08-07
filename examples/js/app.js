@@ -35,6 +35,7 @@ const state = {
   land: null,
   basemap: 'paper',
   panel: null,
+  motionPanel: null,
   hud: null,
   applying: false,
   attribution: {},
@@ -157,12 +158,12 @@ function buildUi() {
   );
 
   const motion = section(root, 'Motion', false);
-  buildPanel(motion, animationFields(), (name, value, values) =>
+  state.motionPanel = buildPanel(motion, animationFields(), (name, value, values) =>
     applyAnimationChange(state.overlay, name, value, values)
   );
 
   const quality = section(root, 'Performance', false);
-  buildPanel(quality, qualityFields({ renderer: true }), (name, value, values) => {
+  buildPanel(quality, qualityFields({ renderer: true, value: state.overlay.renderer }), (name, value, values) => {
     if (name === 'renderer') return swapRenderer(value, values);
     applyQualityChange(state.overlay, name, value, values);
   });
@@ -174,7 +175,9 @@ function buildUi() {
  * A renderer owns a canvas and, on the GL path, a set of GPU resources, so
  * switching means tearing one down and building the other rather than flipping
  * a flag. Everything else - the map, the data, the panel - survives, which is
- * the point of the two engines sharing a surface.
+ * the point of the two engines sharing a surface. The *overlay* does not, so
+ * anything living on it has to be re-applied: the animation, in particular,
+ * since the panel still shows it switched on.
  */
 function swapRenderer(renderer, values) {
   const hud = state.hud;
@@ -190,6 +193,9 @@ function swapRenderer(renderer, values) {
       minRingPx: values.minRingPx,
     },
   });
+  if (state.motionPanel) {
+    applyAnimationChange(state.overlay, 'animate', null, state.motionPanel.values);
+  }
   if (state.overlay.renderer !== renderer) {
     document.getElementById('basemap-note').textContent =
       'WebGL2 with float render targets is unavailable here, so the canvas renderer is still in use.';
