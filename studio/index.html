@@ -31,10 +31,17 @@
 
     <div id="compass"></div>
 
+    <!-- Shown only while the OpenHistoricalMap basemap is active. -->
+    <div id="timeline" hidden></div>
+
     <div id="loading">Loading coastlines&hellip;</div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <!-- Must come after MapLibre: on load it patches maplibregl.Map.prototype
+       with filterByDate. Optional - the studio checks for it and hides the
+       year slider if it fails to arrive. -->
+  <script src="https://unpkg.com/@openhistoricalmap/maplibre-gl-dates@1.3.0/index.js"></script>
   <script type="module" src="js/studio.js"></script>
 </body>
 </html>

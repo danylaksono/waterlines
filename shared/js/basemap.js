@@ -142,7 +142,8 @@ export const BASEMAPS = {
     ink: '#5d4632',
     note:
       'Hosted CC0 vector style. Its coastline is OSM, the waterlines are Natural Earth 10m - ' +
-      'they diverge above about zoom 9.',
+      'they diverge above about zoom 9. Every tile carries all of history at once, so the ' +
+      'year slider over the map filters what is shown; the waterlines stay modern.',
     attribution: [
       '<a href="https://www.openhistoricalmap.org/" target="_blank" rel="noopener">OpenHistoricalMap</a>',
       'Woodblock style CC0',
