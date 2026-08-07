@@ -76,6 +76,17 @@ export class WaterlinesOverlay {
     return this._refresh();
   }
 
+  /**
+   * Animate the waterlines. See {@link import('../render/WaterlineEngine.js').WaterlineEngine#setAnimation}
+   * for what it costs.
+   *
+   * @param {Object|null} animation
+   */
+  setAnimation(animation) {
+    this.engine.setAnimation(animation);
+    return this._refresh();
+  }
+
   /** Latest frame diagnostics. */
   getStats() {
     return this.engine.getStats();

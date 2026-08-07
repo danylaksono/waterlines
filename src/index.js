@@ -29,12 +29,14 @@ export {
 export { WaterlineEngine } from './render/WaterlineEngine.js';
 export { WaterlineRenderer, matrixScale } from './render/WaterlineRenderer.js';
 export { VisiblePathCache } from './render/VisiblePathCache.js';
-export { RasterCache } from './render/RasterCache.js';
+export { RasterCache, blitTransform, entryCovers } from './render/RasterCache.js';
+export { WaterlineCycle } from './render/WaterlineCycle.js';
 export { affineEquals, mercatorBounds } from './render/bounds.js';
 export {
   DEFAULT_STYLE,
   PRESETS,
   colorAccessor,
+  normalisePhase,
   resolveStyle,
 } from './render/style.js';
 export { clamp, linearScale, powScale } from './render/scales.js';

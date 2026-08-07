@@ -572,6 +572,68 @@ number of lines, never the geometry, and never the line positions. Lines that
 soften are far less distracting than lines that move or vanish. This is a
 design judgement, not a measured result, and it is stated as such.
 
+### 4.9 Animation (optional)
+
+Vane's fourth notebook animates the waterlines, and the reasoning there
+transfers intact: the animation is a **loop**, so however long it runs there are
+only $F$ distinct pictures. Each one costs a full render (§4.8.4), which is
+orders of magnitude too much per tick — so render the $F$ pictures once and play
+them back.
+
+#### 4.9.1 Parameterisation
+
+Let $w_i$, $i = 0 \dots N$, be the pen widths of §4.2, ordered outermost first.
+For phase $p \in [0, 1)$ the animated pen widths are
+
+$$
+\tilde{w}_i(p) = \begin{cases}
+  w_{i+1} + (w_i - w_{i+1})\,p & i < N \\
+  w_N \, p & i = N
+\end{cases}
+$$
+
+Each line travels outwards from the slot the line ahead of it occupied; the
+innermost is born at the shore with zero width. Since $\tilde{w}_i(1) = w_i$ and
+$\tilde{w}_i(0) = w_{i+1}$, the picture at $p = 1$ is the picture at $p = 0$
+advanced by exactly one line, and the loop is seamless — provided the two ends
+are cross-faded, $\alpha_0 \mapsto \alpha_0 (1 - p)$ and $\alpha_N \mapsto
+\alpha_N p$, so that neither the departing nor the arriving line pops.
+
+Note that the interpolation is linear in **width**, not in line index. Because
+the spacing scale is sub-linear, the outer lines are further apart and therefore
+travel faster, which is the behaviour of real waves. That is a property of
+Vane's formulation, and it is preserved here.
+
+Direction is frame order and nothing else. Whether outwards or inwards looks
+right is, as she argues, unresolved and probably scale-dependent.
+
+#### 4.9.2 Playback and its costs
+
+The loop is built only on a **settled** view that already has a sharp still
+bitmap, paced by the same step controller as a refresh (§4.8.2). While the map
+moves, or while a loop builds, the still bitmap is shown: the animation pauses
+and resumes rather than competing for the frame.
+
+Two costs follow directly, and neither is hidden:
+
+| quantity | still | animated |
+| --- | --- | --- |
+| work to settle on a new view | 1 render | $F$ renders |
+| bitmaps held | 2 (pooled) | $F$ |
+| per-frame cost | 1 `drawImage` | 1 `drawImage` |
+| host repaints | only when the view changes | continuous |
+
+At $1440 \times 900$ and `pixelRatio` 1 a frame is $\approx 5$ MB, so $F = 12$
+is $\approx 60$ MB; a byte budget trims $F$ rather than allowing a large window
+and a long loop to allocate without bound. Animation frames render at
+`pixelRatio` 1 by default for the same reason — a device ratio of 2 is four
+times the memory.
+
+The structural point of §5 survives: the per-frame cost is still one
+`drawImage`. What animation changes is the amortisation denominator — the
+expensive work is now amortised over a *view* rather than over a view **and**
+all the time spent looking at it.
+
 ---
 
 ## 5. Complexity

@@ -27,6 +27,10 @@
  * @property {GlobalCompositeOperation} [composite] blend mode for the lines
  * @property {CanvasLineJoin} [lineJoin='bevel'] `round` is prettier on sharp
  *   corners but markedly slower on a densely sampled coastline
+ * @property {number|null} phase  where in the animation cycle to draw, 0..1,
+ *   or `null` to hold still. Over one cycle every waterline travels outwards
+ *   into the slot the line ahead of it occupied; 0 and 1 are the same picture,
+ *   so the loop is seamless. See {@link WaterlineCycle}.
  */
 
 /**
@@ -55,6 +59,7 @@ export const DEFAULT_STYLE = {
   coastline: null,
   composite: 'source-over',
   lineJoin: 'bevel',
+  phase: null,
 };
 
 /**
@@ -130,7 +135,22 @@ export function resolveStyle(style = {}) {
   const merged = { ...DEFAULT_STYLE, ...base, ...rest };
   merged.lineWidth = toPair(merged.lineWidth, DEFAULT_STYLE.lineWidth);
   merged.opacity = toPair(merged.opacity, DEFAULT_STYLE.opacity);
+  merged.phase = normalisePhase(merged.phase);
   return merged;
+}
+
+/**
+ * Wrap a phase into [0, 1), so callers can drive it straight from a clock
+ * (`elapsed / periodMs`) or run it backwards without bookkeeping.
+ *
+ * @param {number|null|undefined} phase
+ * @returns {number|null}
+ */
+export function normalisePhase(phase) {
+  if (phase === null || phase === undefined) return null;
+  if (!Number.isFinite(phase)) return null;
+  const p = phase % 1;
+  return p < 0 ? p + 1 : p;
 }
 
 /**

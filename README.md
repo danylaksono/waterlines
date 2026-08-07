@@ -246,6 +246,46 @@ document.body.append(
 );
 ```
 
+### Animation
+
+Off by default, and on either adapter:
+
+```js
+overlay.setAnimation({
+  periodMs: 1600, // one full cycle
+  direction: "outwards", // or "inwards"
+  frames: 12, // pictures per cycle
+});
+overlay.setAnimation(null); // back to a still overlay
+```
+
+This is [Olivia Vane's animation notebook][anim] adapted to a view that can
+move. Her reasoning carries over unchanged: the animation is a _loop_, so there
+are only N distinct pictures however long it runs, and each one costs far too
+much to draw per tick — so render them once and play them back. Over one cycle
+every waterline travels outwards into the slot the line ahead of it occupied;
+the innermost is born at the shore and the outermost fades out as it leaves, so
+the loop closes without a jump. Reversing it is only reversing the frame order.
+
+What it costs, plainly: settling on a new view now renders `frames` bitmaps
+instead of one, so the waterlines take proportionally longer to appear, and the
+loop holds `frames` viewport bitmaps in memory (about 5 MB each at 1440×900).
+`WaterlineCycle`'s `budgetBytes` trims the frame count rather than let that run
+away. Playback itself is free — one `drawImage` per frame — but the host map is
+repainted continuously while it runs, which is not free on a laptop battery.
+While the map is moving, or while a loop is being built, the still overlay is
+shown instead: the animation pauses and resumes rather than competing with the
+gesture.
+
+Any single frame of the cycle is also just a style, so a still render can sit
+anywhere in it:
+
+```js
+renderStill(land, { style: { preset: "antique", phase: 0.5 } });
+```
+
+[anim]: https://observablehq.com/@oliviafvane/iv-animating-waterlines-canvas-strokes
+
 ### Your own data, and saving a picture
 
 [`studio/index.html`](studio/index.html), served at `/studio`, is the main example plus the two

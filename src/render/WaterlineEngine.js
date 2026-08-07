@@ -30,6 +30,7 @@ import { countVertices, geojsonToRings } from '../core/rings.js';
 import { VisiblePathCache } from './VisiblePathCache.js';
 import { WaterlineRenderer } from './WaterlineRenderer.js';
 import { RasterCache } from './RasterCache.js';
+import { WaterlineCycle } from './WaterlineCycle.js';
 import { mercatorBounds } from './bounds.js';
 
 /**
@@ -52,6 +53,8 @@ import { mercatorBounds } from './bounds.js';
  *   refresh throttles itself to keep frames near this (see {@link RasterCache})
  * @property {number} [rasterPad=192] margin around the viewport kept in the
  *   cache, CSS px - bigger means fewer refreshes while panning
+ * @property {Object} [cycle] forwarded to {@link WaterlineCycle}; only matters
+ *   if the animation is switched on with {@link WaterlineEngine#setAnimation}
  * @property {number} [padding=64] cull padding beyond the ripple extent, px
  * @property {boolean} [visible=true]
  * @property {() => void} [onInvalidate] called when a background LOD build
@@ -70,6 +73,10 @@ export class WaterlineEngine {
         2
       ),
       interactivePixelRatio: 1,
+      // Animation frames are held `frames` times over, so their resolution is
+      // the setting that decides whether a loop costs 60 MB or 240 MB. 1 is
+      // the honest default; raise it for a small viewport or a short loop.
+      animationPixelRatio: 1,
       draftPixelRatio: 0.5,
       draftLodOffset: 2,
       adaptive: true,
@@ -83,7 +90,13 @@ export class WaterlineEngine {
     this.renderer = new WaterlineRenderer(this.options.style);
     this.pathCache = new VisiblePathCache();
     this.raster = new RasterCache({ pad: this.options.rasterPad });
+    this.cycle = new WaterlineCycle(this.options.cycle);
     this.visible = this.options.visible !== false;
+
+    /** @type {{periodMs:number, direction:number}|null} */
+    this._animation = null;
+    this._animationStart = 0;
+    this._cycleFrame = -1;
 
     this.width = 0;
     this.height = 0;
@@ -147,6 +160,55 @@ export class WaterlineEngine {
     return this;
   }
 
+  /**
+   * Switch the waterline animation on or off.
+   *
+   * Off by default, and worth understanding before switching it on. A still
+   * overlay renders one bitmap and reuses it for as long as the view holds;
+   * an animated one renders a whole loop of them (see {@link WaterlineCycle}),
+   * so settling on a new view costs `frames` times as much work and holds
+   * `frames` times as many pixels in memory. In exchange, playback itself is
+   * free: once the loop exists, a tick is one `drawImage`.
+   *
+   * While the view is moving, or while a loop is being built, the still bitmap
+   * is shown instead - the animation pauses and picks up again once the map
+   * settles. That is deliberate: competing with a gesture for the frame is
+   * what the whole engine is built to avoid.
+   *
+   * @param {Object|null} animation `null`, or `false`, turns it off
+   * @param {number} [animation.periodMs=1350] time for one full loop
+   * @param {'outwards'|'inwards'} [animation.direction='outwards'] which way
+   *   the waterlines travel. Vane makes the case that inwards - waves washing
+   *   ashore - is the truer analogy, and that outwards nonetheless tends to
+   *   look right; it is genuinely a matter of taste.
+   * @param {number} [animation.frames] pictures per loop, default 12
+   */
+  setAnimation(animation) {
+    if (!animation) {
+      this._animation = null;
+      this.cycle.invalidate();
+      this.renderer.setStyle({ phase: null });
+      this.invalidate();
+      return this;
+    }
+
+    const { periodMs = 1350, direction = 'outwards', frames } = animation;
+    if (frames) this.cycle.frames = Math.max(2, Math.round(frames));
+    this._animation = {
+      periodMs: Math.max(1, periodMs),
+      direction: direction === 'inwards' ? -1 : 1,
+    };
+    if (!this._animationStart) this._animationStart = now();
+    this.cycle.invalidate();
+    this.invalidate();
+    return this;
+  }
+
+  /** @returns {boolean} */
+  get isAnimating() {
+    return !!this._animation;
+  }
+
   /** @param {boolean} value */
   setVisible(value) {
     this.visible = !!value;
@@ -177,9 +239,16 @@ export class WaterlineEngine {
     return this;
   }
 
-  /** Mark the next frame as needing a redraw even if the view has not moved. */
+  /**
+   * Mark the next frame as needing a redraw even if the view has not moved.
+   *
+   * Any animation loop goes with it: everything that invalidates the still
+   * bitmap - style, data, geometry detail - changes every frame of the loop
+   * too.
+   */
   invalidate() {
     this._dirty = true;
+    this.cycle.invalidate();
     return this;
   }
 
@@ -200,6 +269,9 @@ export class WaterlineEngine {
    * @returns {boolean}
    */
   get isBusy() {
+    // An animation never finishes, so while one is running the host must keep
+    // scheduling frames unconditionally.
+    if (this._animation) return true;
     return this._dirty || this.raster.hasJob || this.raster.isCoarse;
   }
 
@@ -227,6 +299,7 @@ export class WaterlineEngine {
     this.canvas.style.height = `${height}px`;
     this._currentRatio = 0; // force the backing store to be recreated
     this._dirty = true;
+    this.cycle.invalidate(); // every frame of the loop is the wrong size now
     return this;
   }
 
@@ -284,10 +357,23 @@ export class WaterlineEngine {
       mode = 'refreshing';
     }
 
-    // 3. Show the best bitmap available. During a refresh that is the previous
+    // 3. If the animation is on, keep its loop of bitmaps up to date. This
+    //    only ever runs on a settled view with a sharp still bitmap already
+    //    in hand, so it competes with nothing.
+    const cycleFrame = this._animation ? this._advanceCycle(matrix, moving) : -1;
+
+    // 4. Show the best bitmap available. During a refresh that is the previous
     //    one, transformed into place - stale, never half-drawn.
-    raster.blit(this.ctx, matrix, this.width, this.height, this._currentRatio);
-    if (!raster.hasJob && mode === 'refreshing') mode = 'render';
+    if (cycleFrame >= 0) {
+      this.cycle.blit(this.ctx, cycleFrame, matrix, this.width, this.height, this._currentRatio);
+      this._cycleFrame = cycleFrame;
+      mode = 'animating';
+    } else {
+      raster.blit(this.ctx, matrix, this.width, this.height, this._currentRatio);
+      this._cycleFrame = -1;
+      if (!raster.hasJob && mode === 'refreshing') mode = 'render';
+      if (this.cycle.building) mode = 'cycling';
+    }
 
     const elapsed = now() - t0;
     this._track(gap, moving, t0);
@@ -310,6 +396,10 @@ export class WaterlineEngine {
       pixelRatio: this._currentRatio,
       rasterRatio: this._lastRasterRatio,
       moving,
+      animating: !!this._animation,
+      cycleFrame: this._cycleFrame,
+      cycleFrames: this.cycle.entries.length,
+      cycleProgress: this._animation ? this.cycle.progress : 1,
     };
     if (this.options.onFrame) this.options.onFrame(this._stats);
     return this._stats;
@@ -413,6 +503,75 @@ export class WaterlineEngine {
   }
 
   /**
+   * Keep the animation loop current, and say which of its frames belongs on
+   * screen right now.
+   *
+   * @param {import('./WaterlineRenderer.js').Affine} matrix
+   * @param {boolean} moving
+   * @returns {number} frame index, or -1 to fall back to the still bitmap
+   */
+  _advanceCycle(matrix, moving) {
+    const cycle = this.cycle;
+
+    // Building a loop is `frames` full renders. It waits for a view that has
+    // settled *and* already has a sharp still bitmap - so the map is never
+    // waiting on it, and the user is never staring at nothing while it runs.
+    const mayBuild =
+      !moving && !this.raster.hasJob && !this.raster.isCoarse && this._exactFor(matrix);
+
+    if (cycle.building && !cycle.jobCovers(matrix, this.width, this.height)) {
+      cycle.invalidate(); // the view moved out from under it
+    }
+    if (mayBuild && !cycle.building && !cycle.covers(matrix, this.width, this.height)) {
+      this._beginCycle(matrix);
+    }
+    if (mayBuild && cycle.building) {
+      // Paced by the same controller as a still refresh: the work is the same
+      // work, and the frame-interval signal it steers on is already tuned.
+      cycle.advance(this.raster.stepsPerFrame);
+    }
+
+    if (!cycle.covers(matrix, this.width, this.height)) return -1;
+    return cycle.frameAt(
+      now() - this._animationStart,
+      this._animation.periodMs,
+      this._animation.direction
+    );
+  }
+
+  /**
+   * Start rendering a loop for this view: the same cull, path and job the
+   * still bitmap uses, once per phase.
+   *
+   * @param {import('./WaterlineRenderer.js').Affine} matrix
+   */
+  _beginCycle(matrix) {
+    const pixelRatio = Math.min(this.options.animationPixelRatio, this.options.pixelRatio);
+
+    this.cycle.begin({
+      matrix,
+      width: this.width,
+      height: this.height,
+      pixelRatio,
+      createJob: (ctx, frame, phase) => {
+        const zoom = this.zoomFromMatrix(frame.matrix);
+        const level = this._level(zoom, false);
+        const pad = this.renderer.style.extent + this.options.padding;
+        const bounds = mercatorBounds(frame.matrix, frame.width, frame.height, pad);
+        const { path, refWorldSize } = this.pathCache.update(level, bounds);
+
+        // A job snapshots its scales at construction, so the phase only has to
+        // be set for the length of this call - and putting it back afterwards
+        // is what keeps a later still refresh still.
+        this.renderer.setStyle({ phase });
+        const job = this.renderer.createJob(ctx, { ...frame, path, refWorldSize });
+        this.renderer.setStyle({ phase: null });
+        return job;
+      },
+    });
+  }
+
+  /**
    * Zoom implied by an affine transform: its uniform scale is the world size
    * in pixels, and world size is `512 * 2 ** zoom`.
    *
@@ -429,6 +588,8 @@ export class WaterlineEngine {
     if (this._idleHandle !== null) cancelIdle(this._idleHandle);
     if (this.canvas) this.canvas.remove();
     this.raster.invalidate();
+    this.cycle.invalidate();
+    this._animation = null;
     this.canvas = null;
     this.ctx = null;
     this.pyramid = null;
@@ -540,6 +701,10 @@ function emptyStats() {
     pixelRatio: 0,
     rasterRatio: 0,
     moving: false,
+    animating: false,
+    cycleFrame: -1,
+    cycleFrames: 0,
+    cycleProgress: 1,
   };
 }
 

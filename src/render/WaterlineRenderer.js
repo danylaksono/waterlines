@@ -132,6 +132,11 @@ class WaterlineDrawJob {
     this._alpha = powScale([0, n], style.opacity, style.opacityExponent);
     this._n = n;
 
+    // Animation. `null` means "hold still"; every expression below then
+    // collapses to the static case, so a non-animated draw is unchanged.
+    this._phase = style.phase;
+    this._animated = this._phase !== null && this._phase !== undefined;
+
     // Line widths arrive in CSS pixels but are consumed in path units, which
     // the transform then scales. This is the conversion factor.
     this._unit = frame.refWorldSize / matrixScale(frame.matrix);
@@ -201,17 +206,62 @@ class WaterlineDrawJob {
     );
   }
 
+  /**
+   * Pen width of pass `i`, before the conversion to path units.
+   *
+   * Still: the pen scale, straight. Animated: Vane's interpolation from the
+   * animation notebook - over one cycle every line travels outwards into the
+   * slot the line ahead of it occupied, so line `i` runs from where line
+   * `i + 1` sat to where line `i` sat. The innermost line has nowhere to come
+   * from, so it is *born* at the shore and grows out of nothing.
+   *
+   * At phase 1 that is the still picture shifted by one line, which is why the
+   * loop closes without a jump.
+   */
+  _band(i) {
+    if (!this._animated) return this._pen(i);
+    const n = this._n;
+    if (i >= n) return this._pen(n) * this._phase; // the newborn
+    const from = this._pen(i + 1);
+    return from + (this._pen(i) - from) * this._phase;
+  }
+
+  /**
+   * Fractional position of pass `i` in the per-line ramps (colour, opacity,
+   * line weight), so those travel with the line instead of staying pinned to
+   * a slot the line has left. Vane's line weight is a constant 2 px and her
+   * colour is flat, so this has no counterpart in the notebook.
+   */
+  _slot(i) {
+    if (!this._animated) return i;
+    const u = i + 1 - this._phase;
+    return u > this._n ? this._n : u;
+  }
+
+  /**
+   * Cross-fade at the seam of the loop: the outermost line dies as it leaves
+   * the picture, the innermost fades in as it is born. Without it the cycle
+   * pops once per period.
+   */
+  _seam(i) {
+    if (!this._animated) return 1;
+    if (i === 0) return 1 - this._phase;
+    if (i === this._n) return this._phase;
+    return 1;
+  }
+
   _pass(i) {
     const ctx = this.ctx;
     const style = this.style;
     const path = this.frame.path;
     const base = style.composite || 'source-over';
-    const band = this._pen(i);
+    const band = this._band(i);
+    const slot = this._slot(i);
 
     ctx.globalCompositeOperation = base;
-    ctx.strokeStyle = this.renderer._colorAt(1 - i / this._n);
-    ctx.globalAlpha = this._alpha(i);
-    ctx.lineWidth = (band + this._nib(i)) * this._unit;
+    ctx.strokeStyle = this.renderer._colorAt(1 - slot / this._n);
+    ctx.globalAlpha = this._alpha(slot) * this._seam(i);
+    ctx.lineWidth = (band + this._nib(slot)) * this._unit;
     ctx.stroke(path);
 
     if (!style.filled) {

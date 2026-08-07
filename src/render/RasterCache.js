@@ -199,30 +199,10 @@ export class RasterCache {
   }
 
   _covers(entry, matrix, width, height) {
-    if (!entry || !entry.matrix) return false;
-    if (entry.width !== width + 2 * this.pad) return false;
-    if (entry.height !== height + 2 * this.pad) return false;
-
-    const ratio = matrixScale(matrix) / matrixScale(entry.matrix);
-    if (ratio < this.minScaleRatio || ratio > this.maxScaleRatio) return false;
-
-    const t = this._blitTransform(entry, matrix);
-    const det = t.a * t.d - t.c * t.b;
-    if (!det) return false;
-
-    for (const [sx, sy] of [
-      [0, 0],
-      [width, 0],
-      [width, height],
-      [0, height],
-    ]) {
-      const qx = sx - t.e;
-      const qy = sy - t.f;
-      const u = (t.d * qx - t.c * qy) / det;
-      const v = (-t.b * qx + t.a * qy) / det;
-      if (u < 0 || v < 0 || u > entry.width || v > entry.height) return false;
-    }
-    return true;
+    return entryCovers(entry, matrix, width, height, this.pad, {
+      min: this.minScaleRatio,
+      max: this.maxScaleRatio,
+    });
   }
 
   /**
@@ -242,7 +222,7 @@ export class RasterCache {
     if (!this.hasCurrent) return;
 
     const entry = this.current;
-    const t = this._blitTransform(entry, matrix);
+    const t = blitTransform(entry, matrix, this.pad);
     ctx.setTransform(
       t.a * pixelRatio,
       t.b * pixelRatio,
@@ -253,41 +233,6 @@ export class RasterCache {
     );
     ctx.drawImage(entry.canvas, 0, 0, entry.width, entry.height);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }
-
-  /**
-   * Affine mapping a bitmap's CSS coordinates onto the current screen.
-   *
-   * A mercator point sat at `s0 = A0 p + t0` when the bitmap was made and
-   * belongs at `s = A p + t` now, so `s = L s0 + (t - L t0)` with
-   * `L = A A0^-1`. The bitmap's own origin is offset by the padding.
-   */
-  _blitTransform(entry, matrix) {
-    const m0 = entry.matrix;
-    const det0 = m0.a * m0.d - m0.c * m0.b;
-
-    const ia = m0.d / det0;
-    const ib = -m0.b / det0;
-    const ic = -m0.c / det0;
-    const id = m0.a / det0;
-
-    // L = A * A0^-1, in the canvas column convention [[a, c], [b, d]].
-    const la = matrix.a * ia + matrix.c * ib;
-    const lb = matrix.b * ia + matrix.d * ib;
-    const lc = matrix.a * ic + matrix.c * id;
-    const ld = matrix.b * ic + matrix.d * id;
-
-    const tx = matrix.e - (la * m0.e + lc * m0.f);
-    const ty = matrix.f - (lb * m0.e + ld * m0.f);
-
-    return {
-      a: la,
-      b: lb,
-      c: lc,
-      d: ld,
-      e: tx - (la + lc) * this.pad,
-      f: ty - (lb + ld) * this.pad,
-    };
   }
 
   /**
@@ -329,6 +274,87 @@ export class RasterCache {
   }
 }
 
-function now() {
-  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+// --------------------------------------------------------------------------
+// shared with WaterlineCycle, which holds a whole animation loop of bitmaps
+// rendered for one view and needs exactly the same reuse arithmetic.
+// --------------------------------------------------------------------------
+
+/**
+ * Affine mapping a bitmap's CSS coordinates onto the current screen.
+ *
+ * A mercator point sat at `s0 = A0 p + t0` when the bitmap was made and
+ * belongs at `s = A p + t` now, so `s = L s0 + (t - L t0)` with
+ * `L = A A0^-1`. The bitmap's own origin is offset by the padding.
+ *
+ * @param {{matrix:import('./WaterlineRenderer.js').Affine}} entry
+ * @param {import('./WaterlineRenderer.js').Affine} matrix
+ * @param {number} pad
+ * @returns {import('./WaterlineRenderer.js').Affine}
+ */
+export function blitTransform(entry, matrix, pad) {
+  const m0 = entry.matrix;
+  const det0 = m0.a * m0.d - m0.c * m0.b;
+
+  const ia = m0.d / det0;
+  const ib = -m0.b / det0;
+  const ic = -m0.c / det0;
+  const id = m0.a / det0;
+
+  // L = A * A0^-1, in the canvas column convention [[a, c], [b, d]].
+  const la = matrix.a * ia + matrix.c * ib;
+  const lb = matrix.b * ia + matrix.d * ib;
+  const lc = matrix.a * ic + matrix.c * id;
+  const ld = matrix.b * ic + matrix.d * id;
+
+  const tx = matrix.e - (la * m0.e + lc * m0.f);
+  const ty = matrix.f - (lb * m0.e + ld * m0.f);
+
+  return {
+    a: la,
+    b: lb,
+    c: lc,
+    d: ld,
+    e: tx - (la + lc) * pad,
+    f: ty - (lb + ld) * pad,
+  };
+}
+
+/**
+ * Can a bitmap rendered for one view stand in for another?
+ *
+ * @param {Object} entry bitmap record with `matrix`, `width`, `height` (CSS px,
+ *   padding included)
+ * @param {import('./WaterlineRenderer.js').Affine} matrix
+ * @param {number} width  viewport CSS px
+ * @param {number} height viewport CSS px
+ * @param {number} pad
+ * @param {{min:number, max:number}} [scaleRatio] tolerated rescale range
+ * @returns {boolean}
+ */
+export function entryCovers(entry, matrix, width, height, pad, scaleRatio = {}) {
+  if (!entry || !entry.matrix) return false;
+  if (entry.width !== width + 2 * pad) return false;
+  if (entry.height !== height + 2 * pad) return false;
+
+  const { min = 0.75, max = 1.8 } = scaleRatio;
+  const ratio = matrixScale(matrix) / matrixScale(entry.matrix);
+  if (ratio < min || ratio > max) return false;
+
+  const t = blitTransform(entry, matrix, pad);
+  const det = t.a * t.d - t.c * t.b;
+  if (!det) return false;
+
+  for (const [sx, sy] of [
+    [0, 0],
+    [width, 0],
+    [width, height],
+    [0, height],
+  ]) {
+    const qx = sx - t.e;
+    const qy = sy - t.f;
+    const u = (t.d * qx - t.c * qy) / det;
+    const v = (-t.b * qx + t.a * qy) / det;
+    if (u < 0 || v < 0 || u > entry.width || v > entry.height) return false;
+  }
+  return true;
 }

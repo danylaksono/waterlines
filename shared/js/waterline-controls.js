@@ -149,6 +149,76 @@ export function qualityFields() {
 }
 
 /**
+ * Animation controls. Separate from the quality panel because switching this
+ * on changes what the overlay costs by an order of magnitude - see
+ * `WaterlineEngine#setAnimation`.
+ *
+ * @returns {import('./controls.js').Field[]}
+ */
+export function animationFields() {
+  return [
+    {
+      name: 'animate',
+      label: 'Animate the waterlines',
+      type: 'checkbox',
+      value: false,
+      hint: 'Settling on a new view renders a whole loop of frames, so it takes longer to appear. Playback itself is free.',
+    },
+    {
+      name: 'direction',
+      label: 'Travelling',
+      type: 'buttons',
+      value: 'outwards',
+      options: [
+        { value: 'outwards', label: 'Outwards', title: 'Ripples radiating from the shore' },
+        { value: 'inwards', label: 'Inwards', title: 'Waves washing ashore' },
+      ],
+    },
+    {
+      name: 'periodMs',
+      label: 'One full cycle',
+      type: 'range',
+      min: 600,
+      max: 4000,
+      step: 100,
+      value: 1600,
+      format: (v) => `${(v / 1000).toFixed(1)} s`,
+    },
+    {
+      name: 'frames',
+      label: 'Frames per cycle',
+      type: 'range',
+      min: 4,
+      max: 24,
+      step: 1,
+      value: 12,
+      format: (v) => `${v}`,
+      hint: 'Smoother, and proportionally more memory and more work per view.',
+    },
+  ];
+}
+
+/**
+ * Apply an animation-panel change to the overlay.
+ *
+ * @param {Object} overlay
+ * @param {string} name unused; every field rebuilds the same call
+ * @param {*} value
+ * @param {Object} values all panel values
+ */
+export function applyAnimationChange(overlay, name, value, values) {
+  if (!values.animate) {
+    overlay.setAnimation(null);
+    return;
+  }
+  overlay.setAnimation({
+    periodMs: values.periodMs,
+    direction: values.direction,
+    frames: values.frames,
+  });
+}
+
+/**
  * Map panel values onto a waterline style.
  *
  * @param {Object} v panel values

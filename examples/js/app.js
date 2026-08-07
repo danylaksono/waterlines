@@ -18,6 +18,8 @@ import { buildPanel, section } from '../../shared/js/controls.js';
 import { createHud } from './hud.js';
 import { applyGrain } from '../../shared/js/paper.js';
 import {
+  animationFields,
+  applyAnimationChange,
   applyPresetToPanel,
   applyQualityChange,
   qualityFields,
@@ -143,6 +145,11 @@ function buildUi() {
     look,
     waterlineFields(initial, BASEMAPS.paper.ink),
     onStyleChange
+  );
+
+  const motion = section(root, 'Motion', false);
+  buildPanel(motion, animationFields(), (name, value, values) =>
+    applyAnimationChange(state.overlay, name, value, values)
   );
 
   const quality = section(root, 'Performance', false);
