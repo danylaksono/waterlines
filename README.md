@@ -11,7 +11,7 @@ The technique is originally from [Olivia Vane's][notebook], from her Observable 
 _Drawing waterlines on maps_. This repository takes it out of Observable and
 makes it work on a map you can pan and zoom.
 
-See it live here: [https://danylaksono.github.io/waterlines/studio](https://danylaksono.github.io/waterlines/studio/index.html)
+See it live here: [https://danylaksono.is-a.dev/waterlines/studio](https://danylaksono.is-a.dev/waterlines/studio/index.html)
 
 ![Waterlines over the Indonesian archipelago](docs/nusantara.png)
 
