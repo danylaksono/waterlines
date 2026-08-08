@@ -15,13 +15,13 @@ See it live here: [https://danylaksono.github.io/waterlines/studio](https://dany
 
 ![Waterlines over the Indonesian archipelago](docs/nusantara.png)
 
-_"Kita adalah bangsa yang besar"._
+_"Kita adalah bangsa yang besar"_
 
 ## What is it for
 
-I have always obsessed with old maps, and I wanted to make a map that looks like an old map. The waterlines are a simple way to do that. They are also useful for emphasising the coastline in a map where the land and water are otherwise similar in colour.
+I have always obsessed with old maps, and I wanted to make it easy to build an old-looking map on top of Maplibre/DeckGL's interactivity. The waterlines are a simple way to do that. They are also useful for emphasising the coastline in a map where the land and water are otherwise similar in colour.
 
-You can use this for e.g., making an interactive storytelling map with emphasis on nautical stories, or for making a static map with a vintage look. I have some further ideas but I will leave it for future development.
+You can use this for e.g., making an interactive storytelling historical map with emphasis on nautical stories, or for making a static map with a vintage look. I have some further ideas but I'll leave it for future development.
 
 ## Try it
 
