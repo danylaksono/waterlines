@@ -1,7 +1,7 @@
 # Methodology
 
-*Rendering cartographic waterlines over an interactive web map: raster stroke
-expansion and a distance-field formulation*
+_Rendering cartographic waterlines over an interactive web map: raster stroke
+expansion and a distance-field formulation_
 
 This document records the methods used in this repository, the reasoning
 behind them, the measurements that drove the design, and — at least as
@@ -18,14 +18,14 @@ see the [README](../README.md).
 
 ## 1. Scope and claim
 
-**Waterlines** — also called *water lining*, *coastal vignetting*, or
-*shore ripples* — are the concentric lines engravers drew in the sea alongside
+**Waterlines** — also called _water lining_, _coastal vignetting_, or
+_shore ripples_ — are the concentric lines engravers drew in the sea alongside
 a coastline on nineteenth- and early twentieth-century charts. They emphasise
 the shoreline, separate land from water at a glance, and give the sea a
 texture. They are ornament with a job.
 
 The technique in this repository is Olivia Vane's, from her Observable notebook
-*Drawing waterlines on maps* [V1]. The contribution is not the visual effect
+_Drawing waterlines on maps_ [V1]. The contribution is not the visual effect
 but the **engineering required to run it on a live, pannable, zoomable map at
 60 fps**, which requires a different architecture from the one a static image
 needs.
@@ -69,7 +69,7 @@ Robinson et al. [R1] are the standard references for the design tradition,
 though neither treats it algorithmically. It is worth being explicit that
 waterlines in this sense are **not bathymetric**: the lines do not encode
 depth, and their spacing carries no metric meaning. They are a graphic device
-operating in the space of the *map*, not the space of the *world* — a
+operating in the space of the _map_, not the space of the _world_ — a
 distinction that has a direct consequence for the implementation (Section 4.3).
 
 ### 2.2 Computational
@@ -114,7 +114,7 @@ Three properties of this problem drive everything that follows.
 **(P1) Exact offset curves are expensive and badly behaved.** The offset of a
 polygon at distance $d$ is a curve of line segments and circular arcs; it
 self-intersects wherever $d$ exceeds the local radius of curvature of the
-medial axis, and its *topology changes with $d$* — separate islands' offsets
+medial axis, and its _topology changes with $d$_ — separate islands' offsets
 merge as $d$ grows. Removing the self-intersections is the hard part. The
 literature on offset approximation and its pitfalls is substantial; Elber, Lee
 and Kim [E1] survey the approximation methods, and Farouki [F1] treats offsets
@@ -126,13 +126,13 @@ implementation is slow.
 **(P2) The self-intersections are exactly where the interesting structure is.**
 The locus at which an offset self-intersects is the medial axis of $\Omega^c$
 [BL1]. Where two islands face each other, that locus is an edge of the
-*generalized Voronoi diagram* of the polygon set [A1]. This is why dense
+_generalized Voronoi diagram_ of the polygon set [A1]. This is why dense
 waterlines between close islands visually resolve into a Voronoi-like
 partition of the water — an effect Vane noticed and remarked on [V1]. It is not
 an artefact; it is the medial axis becoming visible.
 
 **(P3) For this application the offsets do not need to exist as vectors.**
-They only need to be *drawn*. That is the opening the method exploits.
+They only need to be _drawn_. That is the opening the method exploits.
 
 ---
 
@@ -191,7 +191,7 @@ the rasteriser's stroke tessellation.
 
 **Ordering is not free.** Pass $i+1$ erases a disc of radius $d_{i+1} < d_i$,
 which lies strictly inside the region already cleared by pass $i$'s erase —
-*provided passes run outermost-first*. Reversing the order would have each wide
+_provided passes run outermost-first_. Reversing the order would have each wide
 erase destroy the narrow bands already drawn. Consequently:
 
 > A partially executed waterline render is not a valid image.
@@ -228,7 +228,7 @@ $$
 Two things follow, and both matter in practice:
 
 1. **The exponent controls where the lines crowd.** Since
-   $\Delta(i) \propto (i/N)^{k-1}$, for $k < 1$ the gap *shrinks* as $i \to N$,
+   $\Delta(i) \propto (i/N)^{k-1}$, for $k < 1$ the gap _shrinks_ as $i \to N$,
    i.e. the lines bunch against the shore — the engraved-chart look. For
    $k > 1$ they bunch at the outer edge. $k = 1$ is even spacing.
 
@@ -287,7 +287,7 @@ for longitude $\lambda$ and latitude $\varphi$, clamped to
 $|\varphi| \le 85.051129^\circ$.
 
 **The key structural observation.** For a Web Mercator map view with pitch $0$,
-the map from normalised mercator to screen pixels is *exactly affine*:
+the map from normalised mercator to screen pixels is _exactly affine_:
 
 $$
 \begin{bmatrix} x_s \\ y_s \end{bmatrix}
@@ -336,7 +336,7 @@ $$
 
 independent of $\rho$ (the ratio is folded into the transform).
 
-**Pitch.** A tilted view is a *projective* transform, not affine, and cannot be
+**Pitch.** A tilted view is a _projective_ transform, not affine, and cannot be
 expressed by `setTransform`; a 2D canvas has no perspective divide. This is a
 hard limitation of the approach, not an implementation gap (Section 10).
 
@@ -356,7 +356,7 @@ holes are handled by simply being present as ordinary rings.
 #### 4.5.2 Simplification
 
 Rings are simplified with Ramer–Douglas–Peucker [R2, D2] at a tolerance of
-0.6 px *at the level's own zoom*, i.e. $\varepsilon = 0.6 / (512 \cdot 2^{z_0})$
+0.6 px _at the level's own zoom_, i.e. $\varepsilon = 0.6 / (512 \cdot 2^{z_0})$
 in mercator units. RDP bounds the perpendicular distance from every discarded
 vertex to the retained polyline by $\varepsilon$, hence the one-sided Hausdorff
 error is sub-pixel at that zoom by construction.
@@ -423,11 +423,11 @@ n = \left\lceil \sqrt{\frac{3M}{4\epsilon}} \right\rceil,
 \; M = \max\left(\lVert\Delta^2 P_0\rVert, \lVert\Delta^2 P_1\rVert\right).
 $$
 
-This bound is commonly known as *Wang's formula* and is standard in path
+This bound is commonly known as _Wang's formula_ and is standard in path
 rendering; it appears in the GPU path-rendering literature [K1] and in modern
 vector renderers. The formula and its application are well established; the
 primary attribution — usually given as Wang, G.-J., 1984, on Bézier
-subdivision — is unverified here.
+subdivision (checked online but I didnt look it up ).
 
 Adaptive subdivision would be the textbook choice, but the spans here are short
 hops between adjacent coastline vertices where adaptivity buys nothing, and
@@ -498,7 +498,7 @@ corners map back inside the cached rectangle, and (b) the scale ratio
 $\sqrt{|\det L|}$ lies in $[0.75, 1.8]$, beyond which the resampling is either
 too coarse to cover or too soft to look right.
 
-Under zoom and rotation this is only an *approximation*: line widths scale with
+Under zoom and rotation this is only an _approximation_: line widths scale with
 the gesture, which is geometrically wrong. It is wrong only mid-gesture, and
 the correct image is rendered the moment the view settles. This is the same
 raster-reprojection compromise tiled basemaps make when zooming between tile
@@ -533,7 +533,7 @@ work. In this codebase it reported 0.1 ms for frames that were in fact taking
 (§8.3).
 
 The signal actually used is the **observed wall-clock interval between
-consecutive frames**, which is a *lagged* proxy: the cost of frame $n$ shows up
+consecutive frames**, which is a _lagged_ proxy: the cost of frame $n$ shows up
 as a long gap before frame $n+1$. The controller adjusts steps per frame
 multiplicatively in both directions around a 20 ms target.
 
@@ -548,7 +548,7 @@ than tunable:
 Measured on the target hardware, a single pass at zoom 4.2 over 712 rings costs
 $\approx$ 130 ms. No step count makes that fit in 16.6 ms. Lowering the budget
 to 8 ms changed the median frame interval during a refresh from 99 ms to
-133 ms — it made things slightly *worse*, because the controller was already
+133 ms — it made things slightly _worse_, because the controller was already
 pinned at its minimum of one step.
 
 The resolution is **cooperative yielding**: while the user is moving the map, a
@@ -565,15 +565,15 @@ Before it, dragging during a refresh had a median frame interval of 99.4 ms
 From a cold cache a full render of the heaviest view takes on the order of a
 second, and an empty map for that long is worse than soft waterlines quickly.
 Refreshes at rest therefore run in two rungs: a **draft** at half resolution
-*and two LOD levels coarser*, then the full-resolution pass which replaces it.
+_and two LOD levels coarser_, then the full-resolution pass which replaces it.
 
 The two reductions are not equally useful, and the asymmetry is informative:
 
-| draft strategy | time to first waterlines |
-| --- | --- |
-| none (full render only) | $\approx$ 2000 ms |
-| half resolution only | $\approx$ 1200 ms (1.6×) |
-| half resolution **and** LOD $-2$ | $\approx$ 300 ms (6×) |
+| draft strategy                   | time to first waterlines |
+| -------------------------------- | ------------------------ |
+| none (full render only)          | $\approx$ 2000 ms        |
+| half resolution only             | $\approx$ 1200 ms (1.6×) |
+| half resolution **and** LOD $-2$ | $\approx$ 300 ms (6×)    |
 
 Halving the resolution quarters the pixels but yields only a 1.6× speedup,
 whereas dropping two LOD levels — roughly a $4\times$ reduction in vertex count
@@ -633,12 +633,12 @@ and resumes rather than competing for the frame.
 
 Two costs follow directly, and neither is hidden:
 
-| quantity | still | animated |
-| --- | --- | --- |
-| work to settle on a new view | 1 render | $F$ renders |
-| bitmaps held | 2 (pooled) | $F$ |
-| per-frame cost | 1 `drawImage` | 1 `drawImage` |
-| host repaints | only when the view changes | continuous |
+| quantity                     | still                      | animated      |
+| ---------------------------- | -------------------------- | ------------- |
+| work to settle on a new view | 1 render                   | $F$ renders   |
+| bitmaps held                 | 2 (pooled)                 | $F$           |
+| per-frame cost               | 1 `drawImage`              | 1 `drawImage` |
+| host repaints                | only when the view changes | continuous    |
 
 At $1440 \times 900$ and `pixelRatio` 1 a frame is $\approx 5$ MB, so $F = 12$
 is $\approx 60$ MB; a byte budget trims $F$ rather than allowing a large window
@@ -648,7 +648,7 @@ times the memory.
 
 The structural point of §5 survives: the per-frame cost is still one
 `drawImage`. What animation changes is the amortisation denominator — the
-expensive work is now amortised over a *view* rather than over a view **and**
+expensive work is now amortised over a _view_ rather than over a view **and**
 all the time spent looking at it.
 
 ---
@@ -659,7 +659,10 @@ Everything above describes the **canvas renderer**: N wide strokes, each with
 its middle erased. §8.9 recorded the distance-field alternative as "the right
 formulation for a GPU implementation", and §11 as future work. It is now
 implemented (`src/gl/`), and this section states what changed and what it cost,
-because the difference is structural rather than a speed-up.
+because the difference is structural rather than a mere speed-up.
+
+The idea is to compute a **signed distance field** $D$ from the land mask, and then
+shade the waterline bands directly from $D$ in a single pass. The distance field is a single-channel texture, and the shader evaluates $D$ per pixel to decide whether it is in a band or not. The result is the same as the canvas renderer, but the cost is now per pixel rather than per line. The distance field is computed once per frame, and the waterline bands are drawn in a single shader pass. This was made possible within maplibre and deckgl with WebGL/GPU support.
 
 ### 4B.1 The identity, run backwards
 
@@ -676,7 +679,7 @@ Waterline $i$ sits at radius $R(i) = E + (I - E)(i/n)^{e}$ (§4.2). Inverting,
 
 $$\iota(d) = n \left( \frac{d - E}{I - E} \right)^{1/e}$$
 
-gives a *fractional* waterline index for any distance. Round to $j =
+gives a _fractional_ waterline index for any distance. Round to $j =
 \lfloor \iota + \tfrac12 \rfloor$, recompute $R(j)$ exactly, and shade the band
 $|d - R(j)| < \tau_j/2$. This is not an approximation of the canvas result: it
 is the same $R$, evaluated at the same integers.
@@ -711,17 +714,17 @@ Protocol as §7.1. Intel Arc integrated GPU, 1440×900, `antique` preset,
 Nusantara at $z$ 4.2 (8,837 visible vertices). "One complete picture" means a
 full-resolution render start to finish: for the canvas renderer that is the
 refresh it spreads over frames and caches; for the GL renderer it is what it
-does *every frame*. Each renderer measured in its own sweep — interleaving them
+does _every frame_. Each renderer measured in its own sweep — interleaving them
 inflates the GL figures, because Chrome rasterises a 2D canvas on the same GPU
 and a `readPixels` flush then waits behind that work too.
 
-| waterlines $N$ | canvas: one complete picture | GL: one complete picture | ratio |
-| --- | --- | --- | --- |
-| 4 | 610 ms | 1.43 ms | 425× |
-| 8 | 651 ms | 1.31 ms | 500× |
-| 16 | 1,107 ms | 1.45 ms | 765× |
-| 32 | 2,147 ms | 1.27 ms | 1,690× |
-| 64 | 4,214 ms | 1.43 ms | 2,950× |
+| waterlines $N$ | canvas: one complete picture | GL: one complete picture | ratio  |
+| -------------- | ---------------------------- | ------------------------ | ------ |
+| 4              | 610 ms                       | 1.43 ms                  | 425×   |
+| 8              | 651 ms                       | 1.31 ms                  | 500×   |
+| 16             | 1,107 ms                     | 1.45 ms                  | 765×   |
+| 32             | 2,147 ms                     | 1.27 ms                  | 1,690× |
+| 64             | 4,214 ms                     | 1.43 ms                  | 2,950× |
 
 The ratio is not the finding. **The slopes are.** The canvas renderer is linear
 in $N$, as §5 predicts. The GL renderer is flat — 1.27 to 1.45 ms across a
@@ -734,22 +737,22 @@ regardless.
 The speed matters less than what stops being necessary. Six mechanisms in §4.7
 and §4.8 exist solely to hide the cost of re-rasterising N waterlines:
 
-| mechanism | why it existed | on the GL path |
-| --- | --- | --- |
-| Raster cache (§4.7) | a bitmap to show while a new one renders | **gone** — every frame is fresh |
-| Visible-path cache (§4.6) | per-frame cull and path assembly | **gone** — the whole level is one mesh, drawn every frame |
-| Step scheduling (§4.8.2) | spread a refresh across frames | **gone** — nothing is long enough to split |
-| Draft ladder (§4.8.4) | coarse first, refine at rest | **gone** — nothing to wait for |
-| Adaptive resolution (§4.8.5) | trade sharpness under load | **gone** — nothing gives way |
-| Animation frame cycle (§4.9) | precomputed loop of bitmaps | **gone** — phase is a uniform |
-| LOD pyramid (§4.6) | amortise geometry work over zooms | **kept** — it was always about geometry, not rasterisation |
+| mechanism                    | why it existed                           | on the GL path                                             |
+| ---------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| Raster cache (§4.7)          | a bitmap to show while a new one renders | **gone** — every frame is fresh                            |
+| Visible-path cache (§4.6)    | per-frame cull and path assembly         | **gone** — the whole level is one mesh, drawn every frame  |
+| Step scheduling (§4.8.2)     | spread a refresh across frames           | **gone** — nothing is long enough to split                 |
+| Draft ladder (§4.8.4)        | coarse first, refine at rest             | **gone** — nothing to wait for                             |
+| Adaptive resolution (§4.8.5) | trade sharpness under load               | **gone** — nothing gives way                               |
+| Animation frame cycle (§4.9) | precomputed loop of bitmaps              | **gone** — phase is a uniform                              |
+| LOD pyramid (§4.6)           | amortise geometry work over zooms        | **kept** — it was always about geometry, not rasterisation |
 
 Three limitations from §10 are resolved outright:
 
 - **Limitation 2 (refresh latency).** There is no refresh, so no stale window.
 - **Limitation 3 (approximate compositing at band overlaps).** Each pixel
   belongs to exactly one waterline — its nearest — so alpha is applied once.
-  This is *more correct* and it is also a **visual change**: §10 notes the
+  This is _more correct_ and it is also a **visual change**: §10 notes the
   double-blending is "part of what makes the effect attractive". Keeping the
   canvas renderer is partly for this reason.
 - **Animation during interaction.** The canvas path must pause its animation
@@ -758,7 +761,7 @@ Three limitations from §10 are resolved outright:
 
 Costs of the new path:
 
-1. **Requires WebGL2 with float render targets.** Seeds are *coordinates*;
+1. **Requires WebGL2 with float render targets.** Seeds are _coordinates_;
    16-bit floats lose integer precision above 2048, which is inside an ordinary
    viewport at `devicePixelRatio` 2. Platforms without `EXT_color_buffer_float`
    fall back to the canvas renderer.
@@ -769,7 +772,7 @@ Costs of the new path:
    discarded once the frame is composited, so `drawImage` on the overlay canvas
    afterwards yields transparent pixels — which is how an export silently
    produces a blank layer. `preserveDrawingBuffer: true` would fix it by making
-   the browser retain a copy of *every* frame in order to serve a readback that
+   the browser retain a copy of _every_ frame in order to serve a readback that
    happens once per session; the cost falls on interaction, which is what this
    renderer exists to protect. The implementation instead exposes `snapshot()`,
    which renders and reads back within a single task while the buffer is still
@@ -786,7 +789,7 @@ Costs of the new path:
 
 ### 4B.5 Why both are retained
 
-The canvas renderer is retained for four reasons, none of them sentimental.
+The canvas renderer is retained for four reasons:
 
 1. **Coverage.** It runs wherever a 2D canvas does, which is everywhere;
    the GL path requires WebGL2 with float render targets.
@@ -796,7 +799,7 @@ The canvas renderer is retained for four reasons, none of them sentimental.
    different program's attribute slot) produced a blank overlay and no error.
    Having a known-good picture to difference against is what localised both.
 3. **Provenance.** It is the direct port of [V1], and therefore the artefact
-   that documents the original technique.
+   that documents the original technique. I had some fun experinmenting with that so I'd like to keep it here.
 4. **Appearance.** The approximate compositing of §10.3 is a visual property of
    the canvas method, not merely a defect of it.
 
@@ -814,21 +817,21 @@ Let $L$ be the visible coastline length in pixels, $V$ the visible vertex count
 at the active LOD, $N$ the number of waterlines, $E$ the extent in pixels, and
 $R$ the viewport area in pixels.
 
-| stage | frequency | cost |
-| --- | --- | --- |
-| GeoJSON → rings | once per dataset | $O(V_\text{src})$ |
-| Simplify + smooth + flatten + `Path2D` | once per **zoom level** | $O(V_\text{src} \log V_\text{src})$ |
-| Viewport cull | per frame | $O(\text{rings})$, bbox tests only |
-| Combined path assembly | per **visible-set change** | $O(V)$ |
-| Waterline render | per **refresh** | $O\!\left(N V + \textstyle\sum_i L\,w_i\right)$ |
-| Blit | per frame | $O(R)$, one `drawImage` |
+| stage                                  | frequency                  | cost                                            |
+| -------------------------------------- | -------------------------- | ----------------------------------------------- |
+| GeoJSON → rings                        | once per dataset           | $O(V_\text{src})$                               |
+| Simplify + smooth + flatten + `Path2D` | once per **zoom level**    | $O(V_\text{src} \log V_\text{src})$             |
+| Viewport cull                          | per frame                  | $O(\text{rings})$, bbox tests only              |
+| Combined path assembly                 | per **visible-set change** | $O(V)$                                          |
+| Waterline render                       | per **refresh**            | $O\!\left(N V + \textstyle\sum_i L\,w_i\right)$ |
+| Blit                                   | per frame                  | $O(R)$, one `drawImage`                         |
 
 The two terms in the render cost are the tessellation term $O(NV)$ and the
 fill-rate term $O(L \sum_i w_i)$, where $\sum_i w_i \approx N E$ for the scales
 in §4.2. §4.8.4 establishes empirically that **the first term dominates** for
 realistic coastline data.
 
-The important structural point is the *frequency* column: the per-frame cost is
+The important structural point is the _frequency_ column: the per-frame cost is
 a bbox scan plus one `drawImage`. Everything expensive is amortised over zoom
 levels, visible-set changes, or refreshes — none of which happen per frame.
 
@@ -855,6 +858,8 @@ levels, visible-set changes, or refreshes — none of which happen per frame.
 
 ## 7. Evaluation
 
+Tested with my own machine over the Nusantara dataset. It just so happen that Indonesia is a good test case: it has a long, complex coastline, and the islands are small and numerous, which is exactly the case that stresses the algorithm. "Kita adalah bangsa yang besar".
+
 ### 7.1 Protocol
 
 Measurements are produced by `scripts/smoke.mjs`, which drives a real browser
@@ -867,7 +872,7 @@ over the Chrome DevTools Protocol with no test framework:
 4. Report the distribution of intervals between animation frames.
 5. Repeat with the overlay hidden, as a paired control.
 
-Frame *intervals* are the dependent variable throughout, for the reason in
+Frame _intervals_ are the dependent variable throughout, for the reason in
 §4.8.2. Overlay-on and overlay-off conditions are measured at the same camera
 positions in the same session.
 
@@ -880,13 +885,13 @@ simplification at zoom 4.
 
 ### 7.2 Interaction frame rate
 
-| drag condition | overlay off | overlay on |
-| --- | --- | --- |
-| Nusantara, z 4.2 (712 rings) | 16.4 ms median | 16.7 ms median, p90 17.6 |
-| Sulawesi, z 6.0 | 16.4 ms | 16.5 ms, p90 17.6 |
-| Bali, z 8.3 | 16.6 ms | 16.5 ms, p90 17.9 |
-| Banda, z 10.5 | 16.5 ms | 16.5 ms, p90 17.8 |
-| Nusantara, **during an in-flight refresh** | — | 16.6 ms, p90 19.1 |
+| drag condition                             | overlay off    | overlay on               |
+| ------------------------------------------ | -------------- | ------------------------ |
+| Nusantara, z 4.2 (712 rings)               | 16.4 ms median | 16.7 ms median, p90 17.6 |
+| Sulawesi, z 6.0                            | 16.4 ms        | 16.5 ms, p90 17.6        |
+| Bali, z 8.3                                | 16.6 ms        | 16.5 ms, p90 17.9        |
+| Banda, z 10.5                              | 16.5 ms        | 16.5 ms, p90 17.8        |
+| Nusantara, **during an in-flight refresh** | —              | 16.6 ms, p90 19.1        |
 
 A 60 Hz display gives a 16.67 ms floor, so every condition is at the vsync
 limit. The last row is the one that matters: it is the case that is easy to
@@ -901,7 +906,7 @@ large and is reported honestly: it reflects both the pacing controller's
 carried-over state and GPU scheduling. It is a second or two of genuine
 rasterisation, not a constant.
 
-While a refresh runs and the user is *not* interacting, the page's frames are
+While a refresh runs and the user is _not_ interacting, the page's frames are
 long. Nothing is moving, so nothing is visible; the moment a gesture begins the
 refresh yields (§4.8.3).
 
@@ -909,20 +914,20 @@ refresh yields (§4.8.3).
 
 To decompose the cost, the same renderer was profiled under SwiftShader —
 software rasterisation, roughly an order of magnitude slower, but with the same
-*relative* structure and far less scheduling noise. Single full render, 1440 ×
+_relative_ structure and far less scheduling noise. Single full render, 1440 ×
 900, zoom 4.2, 692 visible rings, with the earlier $N = 22$ preset:
 
-| configuration | time |
-| --- | --- |
+| configuration                    | time    |
+| -------------------------------- | ------- |
 | full (`antique`, $N=22$, $E=34$) | 1213 ms |
-| $N = 10$ | 573 ms |
-| $N = 2$ | 174 ms |
-| $E = 8$ px | 439 ms |
-| `filled` (no erase pass) | 210 ms |
-| land mask disabled | 430 ms |
-| pixel ratio 0.5 | 178 ms |
-| zoom 6 (247 rings) | 98 ms |
-| zoom 8.3 (14 rings) | 23 ms |
+| $N = 10$                         | 573 ms  |
+| $N = 2$                          | 174 ms  |
+| $E = 8$ px                       | 439 ms  |
+| `filled` (no erase pass)         | 210 ms  |
+| land mask disabled               | 430 ms  |
+| pixel ratio 0.5                  | 178 ms  |
+| zoom 6 (247 rings)               | 98 ms   |
+| zoom 8.3 (14 rings)              | 23 ms   |
 
 Cost is approximately linear in $N$ (≈50 ms per pass), and strongly dependent
 on the visible ring count. The `filled` row shows the erase passes are the
@@ -999,14 +1004,14 @@ the cubics did. Setting `lineJoin: 'bevel'` — visually indistinguishable on an
 already-smooth curve — recovered roughly 25 %, and coarsening the flattening
 tolerance from 0.4 px to 0.75 px recovered more:
 
-| configuration | relative cost |
-| --- | --- |
-| cubics + round joins | 1.00 |
-| cubics + bevel joins | 0.76 |
-| flattened 0.4 px + round joins | 0.97 |
-| flattened 0.4 px + bevel joins | 0.76 |
-| flattened 1.0 px + bevel joins | 0.55 |
-| no smoothing + bevel joins | 0.42 |
+| configuration                  | relative cost |
+| ------------------------------ | ------------- |
+| cubics + round joins           | 1.00          |
+| cubics + bevel joins           | 0.76          |
+| flattened 0.4 px + round joins | 0.97          |
+| flattened 0.4 px + bevel joins | 0.76          |
+| flattened 1.0 px + bevel joins | 0.55          |
+| no smoothing + bevel joins     | 0.42          |
 
 (Measured under SwiftShader with a fresh canvas per repetition, so the absolute
 numbers are inflated by allocation; the ratios are the useful part.)
@@ -1019,7 +1024,7 @@ inflate another.
 
 Superficially free: at rest nothing competes for the frame, so let the refresh
 take 50 ms per frame instead of 20 and finish sooner. In practice it made the
-controller submit the *entire* refresh in one frame, because it cannot see
+controller submit the _entire_ refresh in one frame, because it cannot see
 rasterisation cost (§8.2) and the lagged signal had not yet caught up. The
 commit timestamps duly reported 17 ms for the whole job — measuring submission,
 not completion — while the page locked up for seconds. Reverted to a single
@@ -1064,18 +1069,18 @@ reduce geometry as well.
 
 ## 9. Trade-offs
 
-| decision | gains | costs |
-| --- | --- | --- |
+| decision                                                | gains                                                                                | costs                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | Raster stroke expansion instead of geometric offsetting | Orders of magnitude faster; self-intersection and topology change handled implicitly | Output is a raster: no vector export, no hit-testing, no label placement along the lines |
-| Affine transform delegated to the canvas | No per-vertex work per frame; bearing free | Pitch cannot be supported at all |
-| Screen-space extent | Constant appearance across zoom; bounded cost | The lines carry no metric meaning; not usable as a depth encoding |
-| LOD pyramid + ring selection | Bounded per-frame cost; sub-pixel geometric error | Islands pop in and out across zoom levels |
-| Raster cache with affine reuse | Pans and zooms cost one `drawImage` | Line widths are momentarily wrong mid-zoom |
-| Refresh yields to gestures | Interaction is never affected | The image can be stale for a second or more after a gesture |
-| Draft-then-refine | First waterlines ~6× sooner | ~25 % more total work; a visible sharpening step |
-| One combined path per visible set | Correct compositing where bands overlap | Path rebuild when the visible set changes |
-| Bevel joins | ~25 % faster | Marginally different corner geometry at very sharp headlands |
-| Zero dependencies | Reproducible, auditable, small | Reimplements ~40 lines of d3 |
+| Affine transform delegated to the canvas                | No per-vertex work per frame; bearing free                                           | Pitch cannot be supported at all                                                         |
+| Screen-space extent                                     | Constant appearance across zoom; bounded cost                                        | The lines carry no metric meaning; not usable as a depth encoding                        |
+| LOD pyramid + ring selection                            | Bounded per-frame cost; sub-pixel geometric error                                    | Islands pop in and out across zoom levels                                                |
+| Raster cache with affine reuse                          | Pans and zooms cost one `drawImage`                                                  | Line widths are momentarily wrong mid-zoom                                               |
+| Refresh yields to gestures                              | Interaction is never affected                                                        | The image can be stale for a second or more after a gesture                              |
+| Draft-then-refine                                       | First waterlines ~6× sooner                                                          | ~25 % more total work; a visible sharpening step                                         |
+| One combined path per visible set                       | Correct compositing where bands overlap                                              | Path rebuild when the visible set changes                                                |
+| Bevel joins                                             | ~25 % faster                                                                         | Marginally different corner geometry at very sharp headlands                             |
+| Zero dependencies                                       | Reproducible, auditable, small                                                       | Reimplements ~40 lines of d3                                                             |
 
 ---
 
@@ -1084,13 +1089,13 @@ reduce geometry as well.
 1. **Pitch is unsupported.** Structural (§4.4), not an implementation gap.
 2. **Refresh latency at continental scale.** 0.3 s to draft, up to ~4 s to
    crisp on the tested hardware. Interaction is unaffected, but the image is
-   stale meanwhile. *Canvas renderer only — resolved on the GL path (§4B.4).*
+   stale meanwhile. _Canvas renderer only — resolved on the GL path (§4B.4)._
 3. **Compositing at band overlaps is approximate.** Successive strokes blend
    sequentially, so where two islands' bands cross, alpha is applied twice. The
-   combined-path cache removes this *within* one pass; it remains *across*
+   combined-path cache removes this _within_ one pass; it remains _across_
    passes. It is also, visually, part of what makes the effect attractive.
-   *Canvas renderer only — the GL path assigns each pixel to exactly one
-   waterline, which is more correct and looks slightly different (§4B.4).*
+   _Canvas renderer only — the GL path assigns each pixel to exactly one
+   waterline, which is more correct and looks slightly different (§4B.4)._
 4. **Basemap coastline mismatch.** The overlay draws from its own geometry.
    Against a third-party basemap the two coastlines agree at a glance around
    zoom 4–9 and part company above that, since Natural Earth 10 m generalises
@@ -1110,11 +1115,11 @@ reduce geometry as well.
 - ~~**WebGL/WebGPU distance-field implementation.**~~ **Done** — see §4B. What
   remains from the original entry: it is still an overlay canvas rather than a
   genuine deck.gl layer or a MapLibre `CustomLayerInterface`. Becoming the
-  latter would resolve limitation 5, letting waterlines sit *beneath* basemap
+  latter would resolve limitation 5, letting waterlines sit _beneath_ basemap
   labels instead of over everything.
 - **Perceptual comparison of the two renderers.** §4B.4 reports 77% pixel
   agreement and a known difference at corners and band overlaps. Whether the
-  exact field or the approximate compositing looks *better* is an open question
+  exact field or the approximate compositing looks _better_ is an open question
   and a matter of taste; it is the one place where the older method may win.
 - **Tile-driven geometry.** Source the coastline from the basemap's own vector
   tiles (`querySourceFeatures`) so the waterlines and the drawn coast are the
@@ -1170,97 +1175,96 @@ Versions used: MapLibre GL 5.24.0, deck.gl 9.1.14, Node 22, Chrome headless
 
 **Primary source**
 
-- **[V1]** Vane, O. *II: Drawing waterlines on maps.* Observable notebook.
+- **[V1]** Vane, O. _II: Drawing waterlines on maps._ Observable notebook.
   <https://observablehq.com/@oliviafvane/ii-drawing-waterlines-on-maps>
   — the technique, the scales, and the `destination-out` formulation.
-- **[W1]** Woodruff, A. *Canvas cartography.* NACIS 2019.
+- **[W1]** Woodruff, A. _Canvas cartography._ NACIS 2019.
   <https://observablehq.com/@awoodruff/canvas-cartography-nacis-2019>
   — the compositing treatment [V1] builds on.
-- **[B1]** Bremer, N. *Simplified curved earth map.* Observable notebook.
+- **[B1]** Bremer, N. _Simplified curved earth map._ Observable notebook.
   <https://observablehq.com/@nbremer/simplified-curved-earth-map>
   — the curve-smoothing approach adapted in [V1].
 
 **Cartographic design and generalisation**
 
-- **[I1]** Imhof, E. (1982). *Cartographic Relief Presentation.* Walter de
-  Gruyter. (English edition; originally *Kartographische Geländedarstellung*,
+- **[I1]** Imhof, E. (1982). _Cartographic Relief Presentation._ Walter de
+  Gruyter. (English edition; originally _Kartographische Geländedarstellung_,
   1965.)
 - **[R1]** Robinson, A.H., Morrison, J.L., Muehrcke, P.C., Kimerling, A.J. &
-  Guptill, S.C. (1995). *Elements of Cartography*, 6th ed. Wiley.
+  Guptill, S.C. (1995). _Elements of Cartography_, 6th ed. Wiley.
 - **[T1]** Töpfer, F. & Pillewizer, W. (1966). The principles of selection.
-  *The Cartographic Journal*, 3(1), 10–16.
+  _The Cartographic Journal_, 3(1), 10–16.
 - **[V2]** Visvalingam, M. & Whyatt, J.D. (1993). Line generalisation by
-  repeated elimination of points. *The Cartographic Journal*, 30(1), 46–51.
+  repeated elimination of points. _The Cartographic Journal_, 30(1), 46–51.
 - **[R2]** Ramer, U. (1972). An iterative procedure for the polygonal
-  approximation of plane curves. *Computer Graphics and Image Processing*,
+  approximation of plane curves. _Computer Graphics and Image Processing_,
   1(3), 244–256.
 - **[D2]** Douglas, D.H. & Peucker, T.K. (1973). Algorithms for the reduction
   of the number of points required to represent a digitized line or its
-  caricature. *The Canadian Cartographer*, 10(2), 112–122.
+  caricature. _The Canadian Cartographer_, 10(2), 112–122.
 
 **Geometry: offsets, medial axis, Voronoi**
 
 - **[E1]** Elber, G., Lee, I.-K. & Kim, M.-S. (1997). Comparing offset curve
-  approximation methods. *IEEE Computer Graphics and Applications*, 17(3),
+  approximation methods. _IEEE Computer Graphics and Applications_, 17(3),
   62–71.
-- **[F1]** Farouki, R.T. (2008). *Pythagorean-Hodograph Curves: Algebra and
-  Geometry Inseparable.* Springer.
+- **[F1]** Farouki, R.T. (2008). _Pythagorean-Hodograph Curves: Algebra and
+  Geometry Inseparable._ Springer.
 - **[BL1]** Blum, H. (1967). A transformation for extracting new descriptors of
-  shape. In W. Wathen-Dunn (ed.), *Models for the Perception of Speech and
-  Visual Form*, MIT Press, 362–380.
+  shape. In W. Wathen-Dunn (ed.), _Models for the Perception of Speech and
+  Visual Form_, MIT Press, 362–380.
 - **[A1]** Aurenhammer, F. (1991). Voronoi diagrams — a survey of a fundamental
-  geometric data structure. *ACM Computing Surveys*, 23(3), 345–405.
+  geometric data structure. _ACM Computing Surveys_, 23(3), 345–405.
 
 **Curves and path rendering**
 
 - **[CR1]** Catmull, E. & Rom, R. (1974). A class of local interpolating
-  splines. In R.E. Barnhill & R.F. Riesenfeld (eds.), *Computer Aided Geometric
-  Design*, Academic Press, 317–326.
+  splines. In R.E. Barnhill & R.F. Riesenfeld (eds.), _Computer Aided Geometric
+  Design_, Academic Press, 317–326.
 - **[BG1]** Barry, P.J. & Goldman, R.N. (1988). A recursive evaluation
-  algorithm for a class of Catmull–Rom splines. *SIGGRAPH '88*, 199–204.
+  algorithm for a class of Catmull–Rom splines. _SIGGRAPH '88_, 199–204.
 - **[Y1]** Yuksel, C., Schaefer, S. & Keyser, J. (2011). Parameterization and
-  applications of Catmull–Rom curves. *Computer-Aided Design*, 43(7), 747–755.
+  applications of Catmull–Rom curves. _Computer-Aided Design_, 43(7), 747–755.
   — the centripetal ($\alpha = 1/2$) no-cusp, no-self-intersection result.
 - **[K1]** Kilgard, M.J. & Bolz, J. (2012). GPU-accelerated path rendering.
-  *ACM Transactions on Graphics*, 31(6), 172.
-- **[D1]** Bostock, M. et al. *d3-shape* and *d3-scale*.
+  _ACM Transactions on Graphics_, 31(6), 172.
+- **[D1]** Bostock, M. et al. _d3-shape_ and _d3-scale_.
   <https://github.com/d3/d3-shape>, <https://github.com/d3/d3-scale>
   — the `curveCatmullRomClosed` and `scalePow` formulations ported here.
 
-*Wang's formula for Bézier flattening (§4.5.4) is standard in this literature;
-the usual primary attribution is to G.-J. Wang (1984) on Bézier subdivision.
-This attribution is unverified.*
+_Wang's formula for Bézier flattening (§4.5.4) is standard in this literature;
+the usual primary attribution is to G.-J. Wang (1984) on Bézier subdivision._
 
 **Rasterisation and compositing**
 
 - **[PD1]** Porter, T. & Duff, T. (1984). Compositing digital images.
-  *SIGGRAPH '84*, 253–259. — the `DEST_OUT` operator on which §4.1 depends.
+  _SIGGRAPH '84_, 253–259. — the `DEST_OUT` operator on which §4.1 depends.
 - **[SH1]** Sutherland, I.E. & Hodgman, G.W. (1974). Reentrant polygon
-  clipping. *Communications of the ACM*, 17(1), 32–42.
+  clipping. _Communications of the ACM_, 17(1), 32–42.
 - **[G1]** Green, C. (2007). Improved alpha-tested magnification for vector
-  textures and special effects. *SIGGRAPH 2007 Courses*, 9–18.
-- **[DA1]** Danielsson, P.-E. (1980). Euclidean distance mapping. *Computer
-  Graphics and Image Processing*, 14(3), 227–248.
+  textures and special effects. _SIGGRAPH 2007 Courses_, 9–18.
+- **[DA1]** Danielsson, P.-E. (1980). Euclidean distance mapping. _Computer
+  Graphics and Image Processing_, 14(3), 227–248.
 - **[FH1]** Felzenszwalb, P.F. & Huttenlocher, D.P. (2012). Distance transforms
-  of sampled functions. *Theory of Computing*, 8, 415–428.
+  of sampled functions. _Theory of Computing_, 8, 415–428.
 - **[RT1]** Rong, G. & Tan, T.-S. (2006). Jump flooding in GPU with
-  applications to Voronoi diagram and distance transform. *Proceedings of the
-  2006 Symposium on Interactive 3D Graphics and Games (I3D '06)*, 109–116. —
+  applications to Voronoi diagram and distance transform. _Proceedings of the
+  2006 Symposium on Interactive 3D Graphics and Games (I3D '06)_, 109–116. —
   the distance transform used in §4B.2.
 - **[HO1]** Hoff, K.E., Keyser, J., Lin, M., Manocha, D. & Culver, T. (1999).
   Fast computation of generalized Voronoi diagrams using graphics hardware.
-  *SIGGRAPH '99*, 277–286. — the distance-cone alternative to [RT1], considered
+  _SIGGRAPH '99_, 277–286. — the distance-cone alternative to [RT1], considered
   and not used.
 
 **Interactive rendering and web maps**
 
 - **[FS1]** Funkhouser, T.A. & Séquin, C.H. (1993). Adaptive display algorithm
   for interactive frame rates during visualization of complex virtual
-  environments. *SIGGRAPH '93*, 247–254. — the predictive frame-budget
+  environments. _SIGGRAPH '93_, 247–254. — the predictive frame-budget
   formulation §4.8.2 adapts.
-- **[SI1]** Sample, J.T. & Ioup, E. (2010). *Tile-Based Geospatial Information
-  Systems: Principles and Practices.* Springer.
-- **[S1]** Snyder, J.P. (1987). *Map Projections: A Working Manual.* USGS
+- **[SI1]** Sample, J.T. & Ioup, E. (2010). _Tile-Based Geospatial Information
+  Systems: Principles and Practices._ Springer.
+- **[S1]** Snyder, J.P. (1987). _Map Projections: A Working Manual._ USGS
   Professional Paper 1395.
 
 **Data and software**
@@ -1269,7 +1273,7 @@ This attribution is unverified.*
   Public domain. <https://www.naturalearthdata.com/>
 - MapLibre GL JS. <https://maplibre.org/>
 - deck.gl. <https://deck.gl/>
-- OpenHistoricalMap *Woodblock* style (CC0), indexed by
+- OpenHistoricalMap _Woodblock_ style (CC0), indexed by
   <https://github.com/pnorman/maplibre-styles>.
 
 **Related work by the same author**
