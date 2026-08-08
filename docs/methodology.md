@@ -661,8 +661,7 @@ formulation for a GPU implementation", and §11 as future work. It is now
 implemented (`src/gl/`), and this section states what changed and what it cost,
 because the difference is structural rather than a mere speed-up.
 
-The idea is to compute a **signed distance field** $D$ from the land mask, and then
-shade the waterline bands directly from $D$ in a single pass. The distance field is a single-channel texture, and the shader evaluates $D$ per pixel to decide whether it is in a band or not. The result is the same as the canvas renderer, but the cost is now per pixel rather than per line. The distance field is computed once per frame, and the waterline bands are drawn in a single shader pass. This was made possible within maplibre and deckgl with WebGL/GPU support.
+The idea is to rasterise the coastline into a screen-space field where each pixel stores its nearest coastline pixel (jump flooding, RG32F), and take the land interior from an even-odd stencil pass. A single shader then converts distance into a fractional waterline index, rounds to the nearest line, and shades the band around it — so every waterline is drawn at once and the line count leaves the cost model. The renderer owns a WebGL2 canvas above the map rather than being a MapLibre or deck.gl layer.
 
 ### 4B.1 The identity, run backwards
 
