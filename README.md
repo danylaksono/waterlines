@@ -7,7 +7,7 @@ the shoreline, separate land from water at a glance, and give the sea a
 texture. Drawn over a live MapLibre or deck.gl map, fast enough that the map still moves
 at 60 fps.
 
-The technique is [Olivia Vane's][notebook], from her Observable notebook
+The technique is originally from [Olivia Vane's][notebook], from her Observable notebook
 _Drawing waterlines on maps_. This repository takes it out of Observable and
 makes it work on a map you can pan and zoom.
 
