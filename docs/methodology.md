@@ -597,6 +597,11 @@ only $F$ distinct pictures. Each one costs a full render (§4.8.4), which is
 orders of magnitude too much per tick — so render the $F$ pictures once and play
 them back.
 
+This section describes the **canvas renderer**, where that precomputation is
+forced by the cost of a frame. The distance-field renderer needs none of it —
+its phase is a shader uniform — and §4B.6 gives its formulation, together with
+the two places where the two paths do not agree.
+
 #### 4.9.1 Parameterisation
 
 Let $w_i$, $i = 0 \dots N$, be the pen widths of §4.2, ordered outermost first.
@@ -807,6 +812,70 @@ default), which uses the GL path where the platform supports it and falls back
 otherwise. Both engines present the same interface, so the choice is invisible
 to callers — including `snapshot()`, which returns readable pixels from either
 and is what allows the studio's PNG export to work on both (§4B.4, cost 3).
+
+### 4B.6 Animation on the distance field
+
+§4.9 describes animation as the canvas renderer implements it: precompute $F$
+whole pictures, play them back. On the distance field the phase is a **shader
+uniform**, so that machinery is not merely cheaper, it is absent.
+
+#### 4B.6.1 Reformulation
+
+§4B.1 already converts a pixel's distance into a fractional waterline index
+$\iota(d)$. Animation is then a shift along that axis. Where the still picture
+places lines at integer indices, the animated one places them at $j - p$ for
+integer $j$, so the shading step becomes
+
+$$
+j = \lfloor \iota(d) + p + \tfrac12 \rfloor, \qquad
+r = R(j - p),
+$$
+
+with the same seam cross-fade as §4.9.1 applied to the first and last $j$. One
+addition and one subtraction on top of the still case; the flood, the mask and
+the pass structure are untouched. This is why the phase can change every frame,
+and why it can keep changing _during_ a gesture (§4B.4).
+
+#### 4B.6.2 Divergence from §4.9.1
+
+The two renderers are not running the same formula, and the difference should be
+stated rather than implied away.
+
+- **Canvas** interpolates linearly in **width**:
+  $\tilde{w}_i(p) = w_{i+1} + (w_i - w_{i+1})p$ — Vane's formulation.
+- **GL** interpolates in **index**: $r = R(j - p)$, evaluating the spacing scale
+  at a fractional index.
+
+Both agree exactly at $p = 0$ and $p = 1$, which is what matters for the loop:
+the cycle still closes seamlessly on either path. Between those endpoints they
+differ by the curvature of $R$ across one index step. For the default style
+($E = 34$, $I = 2$, $n = 12$, $e = 0.7$) the largest interior discrepancy is
+**0.016 px**, at $p = 0.5$ — two orders of magnitude below a pixel, and not
+observable.
+
+The **arriving line is a genuine behavioural difference**, not a rounding one:
+
+| $p$  | canvas radius | GL radius   |
+| ---- | ------------- | ----------- |
+| 0    | 0.000 px      | not drawn   |
+| 0.25 | 0.500 px      | not drawn   |
+| 0.5  | 1.000 px      | 2.000 px    |
+| 0.75 | 1.500 px      | 2.000 px    |
+| 1    | 2.000 px      | 2.000 px    |
+
+Two clamps cause it. $\iota$ is clamped to $[0, n]$, so the index $j = n+1$ is
+unreachable until $p \ge \tfrac12$; and $R$ clamps its argument to the domain,
+so once reachable the line sits at $I$ rather than continuing inward. The
+canvas path grows the new line outward from the shore; the GL path fades it in
+at the innermost radius over the second half of the cycle.
+
+The visible extent of this is bounded by `inset`, 2 px by default, and the seam
+cross-fade means the line is faint exactly where the two disagree most. It has
+not been judged worth changing: matching the canvas exactly would mean
+extending $\iota$'s domain past $n$ and removing a clamp that is otherwise
+protecting the `pow`, for a two-pixel effect on a line that is fading in. It is
+recorded here, and in §11, as a known divergence rather than presented as
+equivalence.
 
 ---
 
@@ -1116,6 +1185,11 @@ reduce geometry as well.
   genuine deck.gl layer or a MapLibre `CustomLayerInterface`. Becoming the
   latter would resolve limitation 5, letting waterlines sit _beneath_ basemap
   labels instead of over everything.
+- **Reconcile the two animation formulations.** §4B.6.2 records a divergence in
+  how the arriving waterline enters: the canvas path grows it outward from the
+  shore, the GL path fades it in at `inset`. Bounded by two pixels and by a
+  fade, so not currently worth the clamp changes it would take, but it is a
+  place where the two renderers are demonstrably not drawing the same picture.
 - **Perceptual comparison of the two renderers.** §4B.4 reports 77% pixel
   agreement and a known difference at corners and band overlaps. Whether the
   exact field or the approximate compositing looks _better_ is an open question
