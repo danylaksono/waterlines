@@ -57,6 +57,12 @@ Two claims are made, and they are separate.
 Section 7 gives the measurements supporting C1 and §4B.3 those supporting C2.
 Section 10 states what neither claims.
 
+§4C covers the portolan wind-rose network, which is supporting chart apparatus
+rather than part of either claim. It is included because its construction has a
+closed form worth recording, and because it is the case where plain vector
+geometry is the right answer — which is what makes the argument of §3 for
+rasterising the waterlines concrete rather than assumed.
+
 ---
 
 ## 2. Background
@@ -879,6 +885,136 @@ equivalence.
 
 ---
 
+## 4C. The wind-rose network
+
+The other device an old chart carries is the **portolan wind-rose network**: the
+criss-crossing web of constant-bearing lines radiating from a hidden circle.
+The studio generates it (`studio/js/rhumb.js`).
+
+This is outside claims C1 and C2 — it is chart furniture, not waterlines. It is
+recorded here for two reasons. Its construction has a closed form that is not
+obvious and that reduces the whole network to a one-line rule. And it is the
+**counter-example to §3**: the case where ordinary vector geometry is the right
+answer, which sharpens why waterlines are not.
+
+### 4C.1 The construction, and why every chord is a compass point
+
+The historical construction is ruler-and-compass: mark 16 equidistant points on
+a circle that is not itself drawn, and join every point to every other.
+
+Place vertex $k$ at bearing $\theta_k = 22.5k$ degrees. For two points on a
+circle at bearings $\theta_j$ and $\theta_k$, the chord between them runs
+perpendicular to the bisector of their radii, so its bearing is
+
+$$
+\beta_{jk} = \frac{\theta_j + \theta_k}{2} + 90 = 11.25\,(j + k) + 90 .
+$$
+
+Since $90 = 8 \times 11.25$, every $\beta_{jk}$ is an integer multiple of
+$11.25°$ — a point of the **32-wind compass**. That is the whole content of the
+construction: the chords of a 16-gon are exactly the compass bearings, which is
+presumably why the figure was drawn this way rather than by measuring angles.
+
+It follows that the network can be generated without reference to chords at
+all: _through each vertex, draw every line whose bearing is a multiple of
+$11.25°$, clipped to the sheet_. The implementation does that, walking 16
+directions rather than 32, since a bearing and its reciprocal describe the same
+infinite line.
+
+**The count.** Naively $16 \times 16 = 256$ lines, but many coincide, and the
+coincidences are what make the figure read as woven rather than tangled. Under
+direction $i$, the perpendicular offset of vertex $k$ reduces to
+
+$$
+\sigma_{ik} = r \sin\!\left(22.5k - 11.25 i\right),
+$$
+
+so two vertices lie on the same line exactly when their $\sigma$ agree. For
+**even** $i$ the argument collapses to multiples of $22.5°$, giving 9 distinct
+values ($0$, $\pm\sin 22.5°$, $\pm\sin 45°$, $\pm\sin 67.5°$, $\pm 1$); for
+**odd** $i$ it takes only odd multiples of $11.25°$, giving 8. Of the 16
+directions, 4 are principal winds, 4 are half-winds and 8 are quarter-winds, so
+
+$$
+4(9) + 4(9) + 8(8) = 36 + 36 + 64 = \mathbf{136}
+$$
+
+distinct lines in one system — the number a chart-maker drew. Deduplication in
+code is by direction and quantised perpendicular offset, with the quantum set
+three orders of magnitude finer than the $\approx 0.1r$ spacing of adjacent
+parallels, which separates genuine neighbours without letting floating-point
+error split one line into two.
+
+### 4C.2 Why this is vector geometry and waterlines are not
+
+§3 argued that waterlines cannot practically be produced as vectors: they are
+offset curves, they self-intersect, and their topology changes with distance
+(P1, P2). None of that applies here, and the reason is worth stating because it
+is the same projection property §4.4 relies on:
+
+**In Web Mercator a loxodrome is a straight line.** A two-point `LineString` is
+therefore simultaneously a true constant-bearing rhumb and a straight line on
+screen. The geometry can be done in plain Euclidean arithmetic in normalised
+mercator — vertex placement, direction vectors, parametric clipping to the
+sheet [LB1] — and unprojected only at the end.
+
+The consequences run the opposite way to the waterlines':
+
+| | waterlines | wind-rose network |
+| --- | --- | --- |
+| representation | raster, on an overlay canvas | vector, as GeoJSON |
+| drawn by | the technique of §4 or §4B | MapLibre `line` layers, on the GPU |
+| per-frame cost | a blit, or a distance-field pass | none — the style renders it |
+| rebuilt when | the view changes | only in lattice mode, on `moveend` |
+| reaches the PNG export | via `snapshot()` (§4B.4) | free; the export composites the map canvas |
+
+The network is split across three layers, one per wind order, so each can carry
+the engravers' convention — principals in black, half-winds green, quarters red
+— and quarters are drawn first so principals sit on top. The layers are
+inserted below the basemap's first `symbol` layer, so labels stay legible. This
+is also the interleaving that the waterline overlay cannot have (limitation 5):
+being real style layers, the rhumb lines can sit beneath labels; the waterlines
+cannot.
+
+### 4C.3 The scale-free lattice
+
+A single system is historically correct and thins out as the map zooms into it,
+exactly as the original would. The studio also offers a **lattice**, which has
+no historical counterpart and is a property of the projection rather than of
+cartography.
+
+Web Mercator is a quadtree: a cell of side $2^{-k}$ in normalised mercator is
+exactly one tile at zoom $k$. So if the cell level is raised by one for each
+zoom level,
+
+$$
+\text{cell}(z) = 2^{-\ell}, \qquad
+\ell = \operatorname{round}\!\left(\log_2 \frac{512 \cdot 2^{z}}{s}\right),
+$$
+
+the cell's **size on screen stays constant** — the weave looks identical at
+every scale, which no drawn chart could manage. Here $s$ is the target on-screen
+cell width, derived from the radius control. Snapping $\ell$ to an integer is
+what buys the invariance; the visible consequence is that apparent size steps
+rather than slides as the zoom crosses a level boundary.
+
+Cells are anchored to the world square rather than to the viewport, so panning
+slides the view across a fixed lattice instead of dragging the roses with it.
+Only cells intersecting the view are built, capped at 10 per axis — about 13,600
+features — which keeps a rebuild on `moveend` below the threshold of notice.
+
+### 4C.4 Verification
+
+The construction is pure geometry and is checked without a browser
+(`tests/run-tests.mjs`): that one system is 136 lines split 36/36/64; that every
+emitted feature's bearing is a multiple of $11.25°$ **and** that the bearing
+measured back from its two mercator endpoints agrees with the advertised one, to
+$10^{-6}$ degrees; that dropping the quarter-winds leaves the 72-line 16-wind
+rose; and that the lattice holds its on-screen size across zooms and repeats
+whole systems anchored to the world.
+
+---
+
 ## 5. Complexity
 
 Let $L$ be the visible coastline length in pixels, $V$ the visible vertex count
@@ -1226,8 +1362,9 @@ node scripts/smoke.mjs --swift   # same, on SwiftShader
   mercator round-trips and clamping, RDP behaviour on closed rings, Catmull–Rom
   control-point placement and flattening tolerance, `scalePow` semantics, the
   affine solve/invert pair including under rotation, the animation phase
-  identities of §4.9.1, and — for the GL path — mesh packing, the flood
-  schedule of §4B.2, colour parsing and the transform of §4B.
+  identities of §4.9.1, the wind-rose counts and bearings of §4C.4, and — for
+  the GL path — mesh packing, the flood schedule of §4B.2, colour parsing and
+  the transform of §4B.
 - The GL path's rasterisation is not unit-testable without a GPU. It is
   verified in the browser against the canvas renderer at a shared view
   (§4B.4), and `examples/renderer-comparison.html` runs both side by side under
@@ -1314,6 +1451,9 @@ the usual primary attribution is to G.-J. Wang (1984) on Bézier subdivision._
   _SIGGRAPH '84_, 253–259. — the `DEST_OUT` operator on which §4.1 depends.
 - **[SH1]** Sutherland, I.E. & Hodgman, G.W. (1974). Reentrant polygon
   clipping. _Communications of the ACM_, 17(1), 32–42.
+- **[LB1]** Liang, Y.-D. & Barsky, B.A. (1984). A new concept and method for
+  line clipping. _ACM Transactions on Graphics_, 3(1), 1–22. — the parametric
+  clip used for the rhumb lines of §4C.1.
 - **[G1]** Green, C. (2007). Improved alpha-tested magnification for vector
   textures and special effects. _SIGGRAPH 2007 Courses_, 9–18.
 - **[DA1]** Danielsson, P.-E. (1980). Euclidean distance mapping. _Computer
