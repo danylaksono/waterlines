@@ -118,19 +118,7 @@ section.step {
   border-bottom: 1px solid var(--rule);
 }
 
-.split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 52px;
-  align-items: center;
-}
-.split.reverse .prose { order: 2; }
-.split.reverse .figure-col { order: 1; }
-
 @media (max-width: 900px) {
-  .split { grid-template-columns: 1fr; gap: 34px; }
-  .split.reverse .prose,
-  .split.reverse .figure-col { order: initial; }
   section.step { padding: 56px 0; }
 }
 
@@ -197,36 +185,18 @@ section.step {
   color: var(--ink-soft);
 }
 
-.stage-label {
-  position: absolute;
-  top: 14px;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  z-index: 2;
-  pointer-events: none;
-  font: 600 12px/1 var(--sans);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+/* What used to float over the picture. Nothing is drawn on top of a figure
+   any more — the state of a figure is announced beside its controls. */
+.ctl-title {
+  font: 600 13.5px/1.35 var(--serif);
   color: var(--ink);
   transition: color 0.25s;
 }
-
-.hint {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  pointer-events: none;
-  background: rgba(244, 236, 216, 0.9);
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  padding: 5px 11px;
-  font-size: 11.5px;
+.ctl-hint {
+  font: 12px/1.35 var(--sans);
   color: var(--ink-soft);
-  white-space: nowrap;
 }
+.ctl-hint b { color: var(--ink); font-weight: 600; }
 
 /* ---------------------------------------------------------------- controls */
 
@@ -309,6 +279,113 @@ input[type="range"].warn::-webkit-slider-thumb { background: var(--oxide); }
 input[type="range"].warn::-moz-range-thumb { background: var(--oxide); }
 
 .field { display: flex; flex-direction: column; gap: 2px; }
+.field input[type="range"] { flex: 1; }
+
+/* Controls that sit *under* the picture instead of on top of it. Anything
+   with more than one row belongs here — a panel floating over the canvas
+   covers the thing it is controlling. */
+.controls.outside {
+  position: static;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 13px 15px;
+  gap: 13px;
+}
+.controls.outside .segmented { flex: 0 0 auto; }
+
+.readout {
+  margin: 0;
+  font: 11px/1.5 var(--mono);
+  letter-spacing: 0.01em;
+  color: var(--ink-soft);
+}
+.readout b { color: var(--accent); font-weight: 400; }
+
+/* -------------------------------------------------------- stacked sections */
+
+/* Two sections earn the full column: the trick itself, and the distance
+   field. Both are pictures you have to be able to read. */
+.figure.showcase { max-width: 900px; margin: 34px auto 0; }
+.figure.showcase .stage { padding-bottom: 58%; }
+
+.stack-lede {
+  max-width: 62ch;
+  margin: 16px auto 0;
+  text-align: center;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 46px;
+  align-items: start;
+  margin-top: 44px;
+}
+.cols pre.code { margin: 0; }
+/* Grid items default to min-width:auto, so a <pre> that scrolls horizontally
+   still widens its column past the viewport. */
+.cols > * { min-width: 0; }
+
+/* Sections whose prose has no second block to sit beside. */
+.prose.single { max-width: 70ch; margin: 42px auto 0; }
+.prose h3 { font-size: 19px; margin: 0 0 12px; }
+.prose h3.spaced { margin-top: 34px; }
+
+.section-sub { font-size: 20px; text-align: center; margin: 52px 0 0; }
+.closing-note { margin: 40px 0 0; text-align: center; font-size: 13.5px; }
+
+@media (max-width: 900px) {
+  .cols { grid-template-columns: 1fr; gap: 30px; }
+  .figure.showcase .stage { padding-bottom: 74%; }
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.tbl {
+  width: 100%;
+  max-width: 780px;
+  border-collapse: collapse;
+  margin: 22px auto 0;
+  font-size: 13.5px;
+}
+.tbl th, .tbl td { padding: 8px 10px; border-top: 1px solid var(--rule); text-align: right; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl thead th {
+  border-top: 0;
+  font: 600 10.5px/1.3 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+.tbl td { font-family: var(--mono); }
+.tbl td.slow { color: var(--oxide); }
+.tbl td.fast { color: var(--green); }
+.tbl caption {
+  caption-side: bottom;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  text-align: left;
+}
+
+/* A list of machinery that stopped being necessary. */
+.gone { list-style: none; margin: 24px 0 0; padding: 0; columns: 2; column-gap: 40px; }
+.gone li {
+  break-inside: avoid;
+  border-top: 1px solid var(--rule);
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.gone li b { display: block; font: 600 15px/1.3 var(--serif); color: var(--ink); margin-bottom: 2px; }
+.gone li i { font-style: normal; color: var(--oxide); font-weight: 600; }
+.gone li.kept i { color: var(--green); }
+
+@media (max-width: 700px) { .gone { columns: 1; } }
 
 /* -------------------------------------------------------------------- code */
 
@@ -449,33 +526,39 @@ footer.end h2 { font-size: 34px; margin: 0 0 10px; }
 
 <!-- ===================================================== I — the hook ==== -->
 <section class="step" data-step="1">
-  <div class="wrap split">
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage"><canvas id="c-hook"></canvas></div>
-        <figcaption>Three synthetic islands, twelve waterlines, drawn the way the archipelago is.</figcaption>
-      </figure>
-    </div>
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">I</span> What you're looking at</p>
-      <h2>Not depth. Not data.</h2>
-      <p>
-        These are <strong>waterlines</strong> — also called water lining or coastal
-        vignetting. They encode absolutely nothing about the real world. Their
-        spacing is purely aesthetic. They are a graphic device invented by
-        nineteenth-century engravers to make land pop off the page.
-      </p>
-      <p>
-        That sounds like a footnote. It isn't: because the lines mean nothing in
-        the world, they are measured in <em>screen pixels</em> rather than metres,
-        and that single decision is what keeps the rendering cost bounded no
-        matter how far you zoom out.
-      </p>
-      <div class="aside">
-        <strong>Credit.</strong> The rendering technique driving this entire
-        project is <a href="https://observablehq.com/@oliviafvane/ii-drawing-waterlines-on-maps">Olivia
-        Vane's</a>, from her Observable notebook <em>Drawing waterlines on maps</em>.
-        What's added here is the engineering to run it on a map that moves.
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">I</span> What you're looking at</p>
+    <h2 class="section-title">Not depth. Not data.</h2>
+    <p class="stack-lede">
+      These are <strong>waterlines</strong> — also called water lining or coastal
+      vignetting. They encode absolutely nothing about the real world.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage"><canvas id="c-hook"></canvas></div>
+      <figcaption>Three synthetic islands, twelve waterlines, drawn the way the archipelago is.</figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <p>
+          Their spacing is purely aesthetic. They are a graphic device invented
+          by nineteenth-century engravers to make land pop off the page.
+        </p>
+        <p>
+          That sounds like a footnote. It isn't: because the lines mean nothing
+          in the world, they are measured in <em>screen pixels</em> rather than
+          metres, and that single decision is what keeps the rendering cost
+          bounded no matter how far you zoom out.
+        </p>
+      </div>
+      <div class="prose">
+        <div class="aside">
+          <strong>Credit.</strong> The rendering technique driving this entire
+          project is <a href="https://observablehq.com/@oliviafvane/ii-drawing-waterlines-on-maps">Olivia
+          Vane's</a>, from her Observable notebook <em>Drawing waterlines on maps</em>.
+          What's added here is the engineering to run it on a map that moves.
+        </div>
       </div>
     </div>
   </div>
@@ -483,14 +566,30 @@ footer.end h2 { font-size: 34px; margin: 0 0 10px; }
 
 <!-- ===================================================== II — the trap ==== -->
 <section class="step" data-step="2">
-  <div class="wrap split reverse">
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">II</span> The naive approach</p>
-      <h2>The obvious way is a trap</h2>
-      <p>
-        Want a line 20 pixels out from the coast? Compute the coastline's
-        <em>offset curve</em> at 20 pixels. Do it twelve times. Done.
-      </p>
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">II</span> The naive approach</p>
+    <h2 class="section-title">The obvious way is a trap</h2>
+    <p class="stack-lede">
+      Want a line 20 pixels out from the coast? Compute the coastline's
+      <em>offset curve</em> at 20 pixels. Do it twelve times. Done.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage"><canvas id="c-trap"></canvas></div>
+      <div class="controls outside">
+        <div class="field">
+          <div class="ctl-row between">
+            <span class="ctl-label">Offset distance</span>
+            <span class="ctl-value"><span id="trap-dist">42</span> px &middot;
+              <span id="trap-count">0</span> self-intersections</span>
+          </div>
+          <input type="range" id="trap-slider" aria-label="Offset distance in pixels" min="0" max="90" value="42">
+        </div>
+      </div>
+      <figcaption>Real per-vertex offsetting, with genuine self-intersections marked — not a mock-up.</figcaption>
+    </figure>
+
+    <div class="prose single">
       <p>
         Except offset curves self-intersect wherever the offset exceeds the local
         radius of curvature — and every bay on every coast is such a place. Drag
@@ -503,65 +602,55 @@ footer.end h2 { font-size: 34px; margin: 0 0 10px; }
         For one static image.
       </p>
     </div>
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage">
-          <canvas id="c-trap"></canvas>
-          <div class="controls">
-            <div class="field">
-              <div class="ctl-row between">
-                <span class="ctl-label">Offset distance</span>
-                <span class="ctl-value"><span id="trap-dist">26</span> px &middot;
-                  <span id="trap-count">0</span> self-intersections</span>
-              </div>
-              <input type="range" id="trap-slider" aria-label="Offset distance in pixels" min="0" max="60" value="26">
-            </div>
-          </div>
-        </div>
-        <figcaption>Real per-vertex offsetting, with genuine self-intersections marked — not a mock-up.</figcaption>
-      </figure>
-    </div>
   </div>
 </section>
 
 <!-- ==================================================== III — the trick ==== -->
 <section class="step" data-step="3">
-  <div class="wrap split">
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage">
-          <canvas id="c-trick"></canvas>
-          <div class="stage-label" id="trick-label">1 &middot; Fat stroke</div>
-          <div class="controls">
-            <div class="segmented" id="trick-seg">
-              <button type="button" data-phase="0" aria-pressed="true">Fat stroke</button>
-              <button type="button" data-phase="1" aria-pressed="false">Erase middle</button>
-              <button type="button" data-phase="2" aria-pressed="false">One ring</button>
-              <button type="button" data-phase="3" aria-pressed="false">Repeat ×12</button>
-            </div>
-          </div>
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">III</span> The trick</p>
+    <h2 class="section-title">Draw fat, erase thin</h2>
+    <p class="stack-lede">
+      Stroking a path with a pen of width <em>w</em> paints exactly the set of
+      points within <em>w</em>/2 of it. That's not a trick, it's the definition
+      of a stroke.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage"><canvas id="c-trick"></canvas></div>
+      <div class="controls outside">
+        <div class="ctl-row between">
+          <span class="ctl-title" id="trick-label">1 &middot; Fat stroke</span>
         </div>
-        <figcaption>The whole algorithm, one step at a time.</figcaption>
-      </figure>
-    </div>
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">III</span> The trick</p>
-      <h2>Draw fat, erase thin</h2>
-      <p>
-        Stroking a path with a pen of width <em>w</em> paints exactly the set of
-        points within <em>w</em>/2 of it. That's not a trick, it's the definition
-        of a stroke.
-      </p>
-      <p>
-        So: draw a very fat line along the coast, then <strong>erase</strong> a
-        slightly thinner one from its middle. What's left is an annular band at a
-        known distance — a waterline, produced entirely by the rasteriser.
-        Narrow the pen and repeat, and the rings nest inside each other.
-      </p>
-      <p>
-        No offset curve is ever constructed. The self-intersections from the last
-        section are resolved implicitly, for free, by the rasteriser's fill rule.
-      </p>
+        <div class="segmented" id="trick-seg">
+          <button type="button" data-phase="0" aria-pressed="true">Fat stroke</button>
+          <button type="button" data-phase="1" aria-pressed="false">Erase middle</button>
+          <button type="button" data-phase="2" aria-pressed="false">One ring</button>
+          <button type="button" data-phase="3" aria-pressed="false">Repeat ×12</button>
+        </div>
+      </div>
+      <figcaption>The whole algorithm, one step at a time.</figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <p>
+          So: draw a very fat line along the coast, then <strong>erase</strong> a
+          slightly thinner one from its middle. What's left is an annular band at
+          a known distance — a waterline, produced entirely by the rasteriser.
+          Narrow the pen and repeat, and the rings nest inside each other.
+        </p>
+        <p>
+          No offset curve is ever constructed. The self-intersections from the
+          last section are resolved implicitly, for free, by the rasteriser's
+          fill rule.
+        </p>
+        <div class="aside">
+          Every pass is two strokes of the same path: one to paint, one to take
+          the middle back out. The band that survives is the difference between
+          two pen widths.
+        </div>
+      </div>
       <pre class="code"><span class="c-com">// The entire rendering loop. Outermost pass first.</span>
 <span class="c-key">for</span> (<span class="c-key">let</span> i = <span class="c-prop">0</span>; i &lt;= count; i++) {
   <span class="c-key">const</span> pen = <span class="c-fn">penWidth</span>(i);        <span class="c-com">// widest first, narrowing inward</span>
@@ -580,192 +669,225 @@ footer.end h2 { font-size: 34px; margin: 0 0 10px; }
 
 <!-- ==================================================== IV — the rules ==== -->
 <section class="step" data-step="4">
-  <div class="wrap split reverse">
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">IV</span> Constraints</p>
-      <h2>Two rules you can't break</h2>
-      <ul class="rules">
-        <li>
-          <strong>Order is fixed.</strong>
-          Each pass erases inside the previous one, so passes must run
-          outward-in. A half-finished render is not a valid picture — which is
-          why the engine renders off-screen and never shows you one.
-        </li>
-        <li>
-          <strong>Smooth the coast first.</strong>
-          A wide pen amplifies every sharp vertex into a spike. Toggle to
-          <em>Raw</em> and push the pen width up to watch it happen.
-        </li>
-      </ul>
-      <p>
-        The smoothing is a <strong>centripetal Catmull–Rom spline</strong>
-        (α&nbsp;=&nbsp;½) — the only parameterisation in that family proven to
-        produce no cusps and no self-intersections within a segment. Under a
-        90-pixel pen that guarantee is load-bearing, not cosmetic: a cusp becomes
-        a spike forty-five pixels long.
-      </p>
-      <div class="aside">
-        The curve in every figure on this page is the real thing — the same
-        centripetal Catmull–Rom to cubic-Bézier conversion as
-        <code>src/core/path.js</code>, not a quadratic approximation.
-      </div>
-    </div>
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage">
-          <canvas id="c-spikes"></canvas>
-          <div class="controls">
-            <div class="ctl-row between">
-              <span class="ctl-label">Coastline</span>
-              <div class="segmented shrink" id="spike-seg">
-                <button type="button" data-smooth="1" aria-pressed="true">Smoothed</button>
-                <button type="button" data-smooth="0" aria-pressed="false" class="warn">Raw</button>
-              </div>
-            </div>
-            <div class="field">
-              <div class="ctl-row between">
-                <span class="ctl-label">Widest pen</span>
-                <span class="ctl-value"><span id="spike-val">90</span> px</span>
-              </div>
-              <input type="range" id="spike-slider" aria-label="Widest pen width in pixels" min="10" max="160" value="90">
-            </div>
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">IV</span> Constraints</p>
+    <h2 class="section-title">Two rules you can't break</h2>
+    <p class="stack-lede">
+      The technique is two strokes in a loop. Both of the things that can go
+      wrong with it are things about the order and the shape of that loop.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage"><canvas id="c-spikes"></canvas></div>
+      <div class="controls outside">
+        <div class="ctl-row between">
+          <span class="ctl-label">Coastline</span>
+          <div class="segmented shrink" id="spike-seg">
+            <button type="button" data-smooth="1" aria-pressed="true">Smoothed</button>
+            <button type="button" data-smooth="0" aria-pressed="false" class="warn">Raw</button>
           </div>
         </div>
-        <figcaption>Miter joins left on deliberately, so the spikes can form.</figcaption>
-      </figure>
+        <div class="field">
+          <div class="ctl-row between">
+            <span class="ctl-label">Widest pen</span>
+            <span class="ctl-value"><span id="spike-val">90</span> px</span>
+          </div>
+          <input type="range" id="spike-slider" aria-label="Widest pen width in pixels" min="10" max="160" value="90">
+        </div>
+      </div>
+      <figcaption>Miter joins left on deliberately, so the spikes can form.</figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <ul class="rules">
+          <li>
+            <strong>Order is fixed.</strong>
+            Each pass erases inside the previous one, so passes must run
+            outward-in. A half-finished render is not a valid picture — which is
+            why the engine renders off-screen and never shows you one.
+          </li>
+          <li>
+            <strong>Smooth the coast first.</strong>
+            A wide pen amplifies every sharp vertex into a spike. Toggle to
+            <em>Raw</em> and push the pen width up to watch it happen.
+          </li>
+        </ul>
+      </div>
+      <div class="prose">
+        <p>
+          The smoothing is a <strong>centripetal Catmull–Rom spline</strong>
+          (α&nbsp;=&nbsp;½) — the only parameterisation in that family proven to
+          produce no cusps and no self-intersections within a segment. Under a
+          90-pixel pen that guarantee is load-bearing, not cosmetic: a cusp
+          becomes a spike forty-five pixels long.
+        </p>
+        <div class="aside">
+          The curve in every figure on this page is the real thing — the same
+          centripetal Catmull–Rom to cubic-Bézier conversion as
+          <code>src/core/path.js</code>, not a quadratic approximation.
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ================================================== V — the spacing ==== -->
 <section class="step" data-step="5">
-  <div class="wrap split">
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage">
-          <canvas id="c-spacing"></canvas>
-          <div class="stage-label" id="spacing-label">Innermost gap 2.5 px</div>
-          <div class="controls">
-            <div class="field">
-              <div class="ctl-row between">
-                <span class="ctl-label">Count <em>N</em></span>
-                <span class="ctl-value"><span id="sp-count">14</span> lines</span>
-              </div>
-              <input type="range" id="sp-count-slider" aria-label="Number of waterlines" min="3" max="40" value="14">
-            </div>
-            <div class="field">
-              <div class="ctl-row between">
-                <span class="ctl-label">Extent <em>E</em></span>
-                <span class="ctl-value"><span id="sp-extent">46</span> px</span>
-              </div>
-              <input type="range" id="sp-extent-slider" aria-label="Extent from shore in pixels" min="10" max="120" value="46">
-            </div>
-          </div>
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">V</span> The one design rule</p>
+    <h2 class="section-title">The setting everyone gets wrong</h2>
+    <p class="stack-lede">
+      The lines are spaced by a power scale, which crowds them against the shore.
+      So the tightest gap is always the innermost one — and it has a floor.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage"><canvas id="c-spacing"></canvas></div>
+      <div class="controls outside">
+        <div class="ctl-row between">
+          <span class="ctl-title" id="spacing-label">Innermost gap 2.5 px</span>
         </div>
-        <figcaption>Push the count up without the extent and the lines fuse into a halo.</figcaption>
-      </figure>
-    </div>
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">V</span> The one design rule</p>
-      <h2>The setting everyone gets wrong</h2>
-      <p>
-        The lines are spaced by a power scale, which crowds them against the
-        shore. That means the tightest gap is always the innermost one, and it is
-        roughly
-      </p>
-      <p class="formula">
-        &Delta;<sub>min</sub> &nbsp;&asymp;&nbsp; <em>k</em>(<em>E</em> &minus; <em>s</em>) / <em>N</em>
-      </p>
-      <p>
-        for <em>N</em> lines reaching <em>E</em> pixels out, inset <em>s</em>, with
-        spacing exponent <em>k</em>. Below about <strong>2 px</strong> the ripples
-        stop reading as lines and fuse into a dark halo. So there is a hard
-        ceiling on how many lines you can ask for:
-        <em>N</em> ≤ <em>k</em>(<em>E</em>&nbsp;&minus;&nbsp;<em>s</em>)&nbsp;/&nbsp;2.
-      </p>
-      <p>
-        Raise the count slider on its own and you'll cross it. This is not a
-        hypothetical — an earlier version of this project shipped
-        <code>count: 22</code> at <code>extent: 34</code>, which violates the
-        bound by a factor of three, and looked it.
-      </p>
+        <div class="field">
+          <div class="ctl-row between">
+            <span class="ctl-label">Count <em>N</em></span>
+            <span class="ctl-value"><span id="sp-count">14</span> lines</span>
+          </div>
+          <input type="range" id="sp-count-slider" aria-label="Number of waterlines" min="3" max="40" value="14">
+        </div>
+        <div class="field">
+          <div class="ctl-row between">
+            <span class="ctl-label">Extent <em>E</em></span>
+            <span class="ctl-value"><span id="sp-extent">46</span> px</span>
+          </div>
+          <input type="range" id="sp-extent-slider" aria-label="Extent from shore in pixels" min="10" max="120" value="46">
+        </div>
+      </div>
+      <figcaption>Push the count up without the extent and the lines fuse into a halo.</figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <p>
+          For <em>N</em> lines reaching <em>E</em> pixels out, inset <em>s</em>,
+          with spacing exponent <em>k</em>, that innermost gap is roughly
+        </p>
+        <p class="formula">
+          &Delta;<sub>min</sub> &nbsp;&asymp;&nbsp; <em>k</em>(<em>E</em> &minus; <em>s</em>) / <em>N</em>
+        </p>
+        <p>
+          Below about <strong>2 px</strong> the ripples stop reading as lines and
+          fuse into a dark halo. So there is a hard ceiling on how many lines you
+          can ask for:
+          <em>N</em> ≤ <em>k</em>(<em>E</em>&nbsp;&minus;&nbsp;<em>s</em>)&nbsp;/&nbsp;2.
+        </p>
+      </div>
+      <div class="prose">
+        <p>
+          Raise the count slider on its own and you'll cross it. This is not a
+          hypothetical — an earlier version of this project shipped
+          <code>count: 22</code> at <code>extent: 34</code>, which violates the
+          bound by a factor of three, and looked it.
+        </p>
+        <div class="aside">
+          The shipped <code>antique</code> preset sits at <em>N</em>&nbsp;=&nbsp;14,
+          <em>E</em>&nbsp;=&nbsp;46 — a 2.0&nbsp;px innermost gap, which is exactly
+          on the bound rather than comfortably inside it.
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ================================================== VI — the beauty ==== -->
 <section class="step" data-step="6">
-  <div class="wrap split reverse">
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">VI</span> An unearned gift</p>
-      <h2>The accidental beauty</h2>
-      <p>
-        Drag the islands together. Where their ripples meet, a seam forms — and
-        it is not a straight line, it bends according to the shape of both
-        coasts.
-      </p>
-      <p>
-        That seam is the <strong>medial axis</strong> of the water becoming
-        visible. It is precisely the locus where the offset curves of section II
-        would have collided; between two islands it is an edge of their
-        generalised Voronoi diagram.
-      </p>
-      <p>
-        The thing that makes the naive method hard is exactly what makes this one
-        beautiful.
-      </p>
-      <div class="aside">
-        The dotted seam is <strong>computed</strong>, not drawn on: it is sampled
-        from where the distance to one island equals the distance to the other.
-        The ripples find it on their own — the two are independent.
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">VI</span> An unearned gift</p>
+    <h2 class="section-title">The accidental beauty</h2>
+    <p class="stack-lede">
+      Drag the islands together. Where their ripples meet, a seam forms — and it
+      is not a straight line, it bends according to the shape of both coasts.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage drag"><canvas id="c-voronoi"></canvas></div>
+      <div class="controls outside">
+        <p class="ctl-hint"><b>Drag either island.</b> The dotted seam is sampled
+          independently of the ripples — nothing draws one from the other.</p>
       </div>
-    </div>
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage drag">
-          <canvas id="c-voronoi"></canvas>
-          <div class="hint">Drag either island</div>
+      <figcaption>Twenty-four waterlines, <code>voronoi</code> preset, with the true bisector sampled over it.</figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <p>
+          That seam is the <strong>medial axis</strong> of the water becoming
+          visible. It is precisely the locus where the offset curves of section
+          II would have collided; between two islands it is an edge of their
+          generalised Voronoi diagram.
+        </p>
+        <p>
+          The thing that makes the naive method hard is exactly what makes this
+          one beautiful.
+        </p>
+      </div>
+      <div class="prose">
+        <div class="aside">
+          The dotted seam is <strong>computed</strong>, not drawn on: it is
+          sampled from where the distance to one island equals the distance to
+          the other. The ripples find it on their own — the two are independent.
         </div>
-        <figcaption>Twenty-four waterlines, <code>voronoi</code> preset, with the true bisector sampled over it.</figcaption>
-      </figure>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ================================================= VII — the affine ==== -->
 <section class="step" data-step="7">
-  <div class="wrap split">
-    <div class="figure-col">
-      <figure class="figure">
-        <div class="stage grab" id="affine-stage">
-          <canvas id="c-affine"></canvas>
-          <div class="hint">Drag to pan &middot; scroll to zoom &middot; shift-drag to rotate</div>
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">VII</span> Making it move</p>
+    <h2 class="section-title">Never project per frame</h2>
+    <p class="stack-lede">
+      A still image can afford one slow render. A map cannot — and the cost here
+      is not the geometry, it's <em>painted area</em>.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage grab" id="affine-stage"><canvas id="c-affine"></canvas></div>
+      <div class="controls outside">
+        <p class="ctl-hint"><b>Drag to pan &middot; scroll to zoom &middot; shift-drag to rotate.</b>
+          The six numbers in the corner are the whole frame; no vertex is touched.</p>
+      </div>
+      <figcaption>
+        Six numbers, updated live. The geometry is never re-projected.
+      </figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <p>
+          Every pass paints a band twice the extent wide along every visible
+          coast, twice over. Across an archipelago that is tens of millions of
+          pixels per frame.
+        </p>
+        <p>
+          The structural escape: at pitch 0, Web Mercator to screen is
+          <strong>exactly affine</strong>. So project the coastline into a
+          <code>Path2D</code> once, and let a frame be six numbers handed to
+          <code>ctx.setTransform</code>. JavaScript never touches a vertex again.
+        </p>
+      </div>
+      <div class="prose">
+        <p>
+          And the catch, which is a real one: a tilted view is
+          <em>projective</em>, not affine, and a 2D canvas has no perspective
+          divide. Pitch isn't unimplemented here — it's impossible.
+        </p>
+        <div class="aside">
+          The same limit holds on the GL path of section IX: its transform is a
+          <code>mat3</code> too, so it buys speed rather than perspective.
         </div>
-        <figcaption>
-          Six numbers, updated live. The geometry is never re-projected.
-        </figcaption>
-      </figure>
-    </div>
-    <div class="prose">
-      <p class="eyebrow"><span class="numeral">VII</span> Making it move</p>
-      <h2>Never project per frame</h2>
-      <p>
-        A still image can afford one slow render. A map cannot — and the cost
-        here is not the geometry, it's <em>painted area</em>. Every pass paints a
-        band twice the extent wide along every visible coast, twice over. Across
-        an archipelago that is tens of millions of pixels per frame.
-      </p>
-      <p>
-        The structural escape: at pitch 0, Web Mercator to screen is
-        <strong>exactly affine</strong>. So project the coastline into a
-        <code>Path2D</code> once, and let a frame be six numbers handed to
-        <code>ctx.setTransform</code>. JavaScript never touches a vertex again.
-      </p>
-      <p>
-        And the catch, which is a real one: a tilted view is <em>projective</em>,
-        not affine, and a 2D canvas has no perspective divide. Pitch isn't
-        unimplemented here — it's impossible.
-      </p>
+      </div>
     </div>
   </div>
 </section>
@@ -815,10 +937,217 @@ footer.end h2 { font-size: 34px; margin: 0 0 10px; }
   </div>
 </section>
 
-<!-- =================================================== IX — the result ==== -->
+<!-- ============================================ IX — the distance field ==== -->
+<section class="step" data-step="9">
+  <div class="wrap">
+    <p class="eyebrow centered"><span class="numeral">IX</span> The new default</p>
+    <h2 class="section-title">Every waterline at once</h2>
+    <p class="stack-lede">
+      Everything above describes the canvas renderer: <em>N</em> wide strokes,
+      each with its middle erased. It still ships, and it still runs everywhere.
+      It is no longer what you get by default.
+    </p>
+
+    <figure class="figure showcase">
+      <div class="stage"><canvas id="c-field"></canvas></div>
+      <div class="controls outside">
+        <div class="ctl-row between">
+          <span class="ctl-title" id="field-label">Round to the nearest line, then shade</span>
+          <div class="segmented shrink" id="field-zoom">
+            <button type="button" data-zoom="-1" aria-label="Zoom out">&minus;</button>
+            <button type="button" data-zoom="0" aria-label="Reset zoom"><span id="field-zoom-val">1.0×</span></button>
+            <button type="button" data-zoom="1" aria-label="Zoom in">+</button>
+          </div>
+        </div>
+        <div class="ctl-row between">
+          <span class="ctl-label">What the shader sees</span>
+          <div class="segmented shrink" id="field-seg">
+            <button type="button" data-mode="0" aria-pressed="false">Distance&nbsp;<em>D</em></button>
+            <button type="button" data-mode="1" aria-pressed="false">Index&nbsp;&iota;</button>
+            <button type="button" data-mode="2" aria-pressed="true">Waterlines</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="ctl-row between">
+            <span class="ctl-label">Count <em>N</em></span>
+            <span class="ctl-value"><span id="field-n-val">14</span> lines &middot; same field</span>
+          </div>
+          <input type="range" id="field-n" aria-label="Number of waterlines" min="3" max="36" value="14">
+        </div>
+        <div class="field">
+          <div class="ctl-row between">
+            <span class="ctl-label">Phase <em>p</em></span>
+            <span class="ctl-value"><span id="field-phase-val">0.00</span></span>
+          </div>
+          <div class="ctl-row">
+            <input type="range" id="field-phase" aria-label="Animation phase" min="0" max="1" step="0.01" value="0">
+            <div class="segmented shrink">
+              <button type="button" id="field-anim" aria-pressed="false">Animate</button>
+            </div>
+          </div>
+        </div>
+        <p class="readout" id="field-readout">&nbsp;</p>
+      </div>
+      <figcaption>
+        Nothing under the canvas rebuilds the field — not the count, not the
+        phase. Both are read by a shading pass that runs once per pixel.
+      </figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="prose">
+        <h3>The identity, run backwards</h3>
+        <p>
+          Section III's stroke-and-erase pair keeps exactly the pixels whose
+          distance to the coast falls between (<em>w</em>&nbsp;&minus;&nbsp;<em>t</em>)/2
+          and <em>w</em>/2. Read that again with the emphasis moved: the N-pass
+          loop is N <strong>slices of one function</strong> — <em>D</em>(x), the
+          distance to the shore.
+        </p>
+        <p>
+          So if <em>D</em> is known per pixel, the slices need not be constructed
+          at all. Waterline <em>i</em> sits at
+          <em>R</em>(<em>i</em>)&nbsp;=&nbsp;<em>E</em>&nbsp;+&nbsp;(<em>I</em>&nbsp;&minus;&nbsp;<em>E</em>)(<em>i</em>/<em>n</em>)<sup><em>e</em></sup>.
+          Invert it:
+        </p>
+        <p class="formula">
+          &iota;(<em>d</em>) &nbsp;=&nbsp; <em>n</em>&thinsp;((<em>d</em>&nbsp;&minus;&nbsp;<em>E</em>) / (<em>I</em>&nbsp;&minus;&nbsp;<em>E</em>))<sup>1/<em>e</em></sup>
+        </p>
+        <p>
+          and every distance yields a <em>fractional</em> waterline index. Round
+          to the nearest integer <em>j</em>, recompute <em>R</em>(<em>j</em>)
+          exactly, shade the band around it. This is not an approximation of the
+          canvas picture: it is the same <em>R</em>, evaluated at the same
+          integers.
+        </p>
+        <p>
+          Antialiasing then arrives free, and better than before.
+          &#8214;&nabla;<em>D</em>&#8214;&nbsp;=&nbsp;1 almost everywhere, so a
+          half-pixel <code>smoothstep</code> on |<em>d</em>&nbsp;&minus;&nbsp;<em>R</em>(<em>j</em>)|
+          is exactly correct coverage — at any resolution, with no derivative
+          estimation.
+        </p>
+
+        <h3 class="spaced">Animation is one subtraction</h3>
+        <p>
+          The canvas renderer animates by precomputing whole pictures and playing
+          them back. Here the phase is a shader uniform: put the lines at
+          <em>j</em>&nbsp;&minus;&nbsp;<em>p</em> instead of <em>j</em>, cross-fade
+          the two ends so the loop closes, and that is the entire mechanism. Scrub
+          the phase slider above — the field underneath never changes.
+        </p>
+      </div>
+
+      <div class="prose">
+        <pre class="code"><span class="c-com">// The whole picture, once per pixel. N is a uniform, not a loop.</span>
+<span class="c-key">float</span> d   = <span class="c-fn">distance</span>(<span class="c-fn">texture</span>(u_field, uv).xy, gl_FragCoord.xy);
+<span class="c-key">float</span> t   = <span class="c-fn">clamp</span>((d - <span class="c-prop">u_extent</span>) / (<span class="c-prop">u_inset</span> - <span class="c-prop">u_extent</span>), <span class="c-prop">0.0</span>, <span class="c-prop">1.0</span>);
+<span class="c-key">float</span> idx = <span class="c-fn">pow</span>(t, <span class="c-prop">1.0</span> / <span class="c-prop">u_spacing</span>) * <span class="c-prop">u_n</span>;   <span class="c-com">// fractional index</span>
+
+<span class="c-key">float</span> j = <span class="c-fn">floor</span>(idx + <span class="c-prop">u_phase</span> + <span class="c-prop">0.5</span>);      <span class="c-com">// the nearest real line</span>
+<span class="c-key">float</span> r = <span class="c-fn">radiusOf</span>(j - <span class="c-prop">u_phase</span>);           <span class="c-com">// its exact radius</span>
+
+<span class="c-com">// |grad d| == 1, so half a pixel is exactly right.</span>
+<span class="c-key">float</span> aa    = <span class="c-prop">0.5</span> / <span class="c-prop">u_ratio</span>;
+<span class="c-key">float</span> cover = <span class="c-prop">1.0</span> - <span class="c-fn">smoothstep</span>(halfW - aa, halfW + aa, <span class="c-fn">abs</span>(d - r));</pre>
+
+        <div class="aside">
+          <strong>Where <em>D</em> comes from.</strong> A screen-space jump flood
+          (Rong &amp; Tan, 2006): rasterise the coast with every covered pixel
+          storing its own coordinates, then propagate the nearest known seed over
+          a halving step. Nothing beyond the extent is ever read, so the flood
+          starts at 2<sup>⌈log₂<em>E</em>⌉</sup> rather than half the image — eight
+          passes instead of eleven at <em>E</em>&nbsp;=&nbsp;46&nbsp;px. Sign comes
+          from an even-odd stencil pass, the same rule as
+          <code>ctx.fill(path,&nbsp;'evenodd')</code>, so both renderers share an
+          identical land mask.
+        </div>
+        <div class="aside">
+          <strong>What the figure really does.</strong> With two islands it is
+          cheaper to compute <em>D</em> exactly, edge by edge, than to flood it —
+          so it does, once, and reports how long that took. Everything after is
+          the shading pass above, in JavaScript. The point is not the absolute
+          numbers but which of the two moves when you drag a slider.
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-sub">What it costs to draw one complete picture</h3>
+    <table class="tbl">
+      <caption>
+        Intel Arc integrated GPU, 1440×900, <code>antique</code> preset,
+        Nusantara at <em>z</em>&nbsp;4.2 — 8,837 visible vertices. For the canvas
+        renderer, "one complete picture" is the refresh it spreads over frames
+        and caches; for the GL renderer it is what happens every frame.
+      </caption>
+      <thead>
+        <tr><th>Waterlines <em>N</em></th><th>Canvas</th><th>Distance field</th><th>ratio</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>4</td>  <td class="slow">610 ms</td>   <td class="fast">1.43 ms</td><td>425×</td></tr>
+        <tr><td>8</td>  <td class="slow">651 ms</td>   <td class="fast">1.31 ms</td><td>500×</td></tr>
+        <tr><td>16</td> <td class="slow">1,107 ms</td> <td class="fast">1.45 ms</td><td>765×</td></tr>
+        <tr><td>32</td> <td class="slow">2,147 ms</td> <td class="fast">1.27 ms</td><td>1,690×</td></tr>
+        <tr><td>64</td> <td class="slow">4,214 ms</td> <td class="fast">1.43 ms</td><td>2,950×</td></tr>
+      </tbody>
+    </table>
+
+    <div class="cols">
+      <div class="prose">
+        <p>
+          The ratio is not the finding. <strong>The slopes are.</strong> The
+          canvas renderer is linear in <em>N</em>, exactly as the stroke-and-erase
+          loop predicts. The distance field is flat — 1.27 to 1.45 ms across a
+          sixteen-fold increase in line count, which is measurement noise.
+          <em>N</em> has left the cost model.
+        </p>
+        <p>
+          Which is why the two lessons in the previous section stop applying.
+          Both were about hiding the cost of re-rasterising <em>N</em> waterlines.
+          Here there is nothing to hide, and six mechanisms built to hide it are
+          simply gone.
+        </p>
+      </div>
+      <div class="prose">
+        <div class="aside">
+          <strong>The honest costs.</strong> WebGL2 with float render targets is
+          required — seeds are <em>coordinates</em>, and 16-bit floats lose
+          integer precision above 2048, which is inside an ordinary viewport at
+          <code>devicePixelRatio</code>&nbsp;2. Two RG32F viewport buffers are
+          held permanently, about 10&nbsp;MB each at 1440×900. A WebGL drawing
+          buffer is discarded once composited, so export goes through an explicit
+          <code>snapshot()</code>. And a true Euclidean field rounds convex
+          corners and resolves concave ones on the medial axis, where the canvas
+          path bevels a smoothed curve: the two pictures agree on
+          <strong>77%</strong> of sampled pixels, with total ink within 5%.
+        </div>
+      </div>
+    </div>
+
+    <ul class="gone">
+      <li><b>Raster cache</b> a bitmap to show while a new one renders — <i>gone</i>, every frame is fresh</li>
+      <li><b>Visible-path cache</b> per-frame cull and path assembly — <i>gone</i>, the level is one mesh</li>
+      <li><b>Step scheduling</b> spread a refresh across frames — <i>gone</i>, nothing is long enough to split</li>
+      <li><b>Draft ladder</b> coarse first, refine at rest — <i>gone</i>, there is nothing to wait for</li>
+      <li><b>Adaptive resolution</b> trade sharpness under load — <i>gone</i>, nothing gives way</li>
+      <li><b>Animation frame cycle</b> a precomputed loop of bitmaps — <i>gone</i>, the phase is a uniform</li>
+      <li class="kept"><b>LOD pyramid</b> amortise geometry work over zooms — <i>kept</i>, it was always about geometry</li>
+      <li class="kept"><b>The canvas renderer</b> coverage, a reference to difference against, and the double-blended overlaps that are part of the look — <i>kept</i>, on purpose</li>
+    </ul>
+
+    <p class="lede closing-note">
+      Selection is one option: <code>renderer: 'auto'</code> takes the distance
+      field wherever the platform allows it, and falls back to the canvas where
+      it does not. Both engines present the same interface, so the choice is
+      invisible to callers.
+    </p>
+  </div>
+</section>
+
+<!-- ==================================================== X — the result ==== -->
 <footer class="end">
   <div class="wrap">
-    <p class="eyebrow"><span class="numeral">IX</span> Result</p>
+    <p class="eyebrow"><span class="numeral">X</span> Result</p>
     <h2>Sixty frames a second, all the way down</h2>
 
     <div class="stat-row">
@@ -894,12 +1223,29 @@ function island(seed, cx, cy, radius, n, wobble) {
 }
 
 /**
- * Centripetal Catmull-Rom through a closed ring, emitted as cubic Beziers.
+ * The two cubic control points of one centripetal Catmull-Rom segment.
  *
  * This is the same construction as src/core/path.js and the formulas in
  * docs/methodology.md 4.5.3 - not a quadratic-midpoint approximation. An
  * explainer about why alpha = 1/2 matters should be using alpha = 1/2.
  */
+function crControls(p0, p1, p2, p3, alpha) {
+  const l01 = Math.max(Math.pow(Math.hypot(p1.x - p0.x, p1.y - p0.y), alpha), 1e-6);
+  const l12 = Math.max(Math.pow(Math.hypot(p2.x - p1.x, p2.y - p1.y), alpha), 1e-6);
+  const l23 = Math.max(Math.pow(Math.hypot(p3.x - p2.x, p3.y - p2.y), alpha), 1e-6);
+
+  const k1 = 3 * l01 * (l01 + l12);
+  const k2 = 3 * l23 * (l23 + l12);
+
+  return {
+    c1x: (p1.x * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.x * l12 * l12 + p2.x * l01 * l01) / k1,
+    c1y: (p1.y * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.y * l12 * l12 + p2.y * l01 * l01) / k1,
+    c2x: (p2.x * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.x * l23 * l23 - p3.x * l12 * l12) / k2,
+    c2y: (p2.y * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.y * l23 * l23 - p3.y * l12 * l12) / k2,
+  };
+}
+
+/** Centripetal Catmull-Rom through a closed ring, emitted as cubic Beziers. */
 function smoothPath(ctx, pts, alpha = 0.5) {
   const n = pts.length;
   ctx.beginPath();
@@ -907,26 +1253,42 @@ function smoothPath(ctx, pts, alpha = 0.5) {
   ctx.moveTo(pts[0].x, pts[0].y);
 
   for (let i = 0; i < n; i++) {
-    const p0 = pts[(i - 1 + n) % n];
     const p1 = pts[i];
     const p2 = pts[(i + 1) % n];
-    const p3 = pts[(i + 2) % n];
-
-    const l01 = Math.max(Math.pow(Math.hypot(p1.x - p0.x, p1.y - p0.y), alpha), 1e-6);
-    const l12 = Math.max(Math.pow(Math.hypot(p2.x - p1.x, p2.y - p1.y), alpha), 1e-6);
-    const l23 = Math.max(Math.pow(Math.hypot(p3.x - p2.x, p3.y - p2.y), alpha), 1e-6);
-
-    const k1 = 3 * l01 * (l01 + l12);
-    const k2 = 3 * l23 * (l23 + l12);
-
-    const c1x = (p1.x * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.x * l12 * l12 + p2.x * l01 * l01) / k1;
-    const c1y = (p1.y * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.y * l12 * l12 + p2.y * l01 * l01) / k1;
-    const c2x = (p2.x * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.x * l23 * l23 - p3.x * l12 * l12) / k2;
-    const c2y = (p2.y * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.y * l23 * l23 - p3.y * l12 * l12) / k2;
-
-    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, p2.x, p2.y);
+    const c = crControls(pts[(i - 1 + n) % n], p1, p2, pts[(i + 2) % n], alpha);
+    ctx.bezierCurveTo(c.c1x, c.c1y, c.c2x, c.c2y, p2.x, p2.y);
   }
   ctx.closePath();
+}
+
+/**
+ * The same curve, flattened to a closed polyline. Section IX needs the
+ * coastline as points rather than as a path, because it measures distance to
+ * it per pixel instead of stroking it.
+ */
+function samplePath(pts, per, alpha = 0.5) {
+  const n = pts.length;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const c = crControls(pts[(i - 1 + n) % n], p1, p2, pts[(i + 2) % n], alpha);
+    for (let k = 0; k < per; k++) {
+      const t = k / per, u = 1 - t;
+      const a = u * u * u, b = 3 * u * u * t, d = 3 * u * t * t, e = t * t * t;
+      out.push({
+        x: a * p1.x + b * c.c1x + d * c.c2x + e * p2.x,
+        y: a * p1.y + b * c.c1y + d * c.c2y + e * p2.y,
+      });
+    }
+  }
+  return out;
+}
+
+/** GLSL's smoothstep, because section IX is a shader written in JavaScript. */
+function smoothstep(a, b, x) {
+  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+  return t * t * (3 - 2 * t);
 }
 
 /** The same ring with no smoothing at all — straight to every vertex. */
@@ -1056,9 +1418,9 @@ figure('c-hook', (f) => {
     const { ctx, w, h } = f;
     const s = Math.min(w, h);
     const rings = [
-      island(42, w * 0.38, h * 0.36, s * 0.15, 13, 0.34),
-      island(7,  w * 0.70, h * 0.62, s * 0.11, 10, 0.30),
-      island(19, w * 0.30, h * 0.74, s * 0.08, 9,  0.36),
+      island(42, w * 0.40, h * 0.34, s * 0.16, 13, 0.34),
+      island(7,  w * 0.64, h * 0.64, s * 0.12, 10, 0.30),
+      island(19, w * 0.33, h * 0.76, s * 0.09, 9,  0.36),
     ];
 
     clearSea(ctx, w, h);
@@ -1237,19 +1599,23 @@ figure('c-trick', (f) => {
   f.draw = function () {
     const { ctx, w, h } = f;
     const s = Math.min(w, h);
-    const ring = island(99, w / 2, h / 2, s * 0.17, 11, 0.3);
+    const ring = island(99, w / 2, h / 2, s * 0.20, 11, 0.3);
     const rings = [ring];
 
     clearSea(ctx, w, h);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
-    const fat = s * 0.30;
-    const thin = fat - s * 0.045;
+    const fat = s * 0.34;
+    const thin = fat - s * 0.05;
 
     if (phase === 3) {
+      // Deliberately not the shipped look: flat opacity and a fat nib, because
+      // this panel exists to show that twelve nested bands came out of the
+      // loop — not to show what a good waterline preset looks like.
       drawWaterlines(ctx, rings, {
-        count: 12, extent: s * 0.16, inset: 1.5, k: 0.62, color: COLOR.ink,
+        count: 12, extent: s * 0.19, inset: 1.5, k: 0.62, color: COLOR.ink,
+        minAlpha: 0.9, maxAlpha: 0.9, weightInner: 4, weightOuter: 4,
       });
     } else {
       // the fat line
@@ -1313,8 +1679,11 @@ figure('c-spikes', (f) => {
 
   f.draw = function () {
     const { ctx, w, h } = f;
-    const s = Math.min(w, h);
-    const cx = w / 2, cy = h * 0.46;
+    // The pen widths here are absolute pixels — the prose talks about a
+    // 90-pixel pen — so the headland is sized to keep that ratio legible
+    // rather than growing with the stage.
+    const s = Math.min(w, h) * 0.74;
+    const cx = w / 2, cy = h * 0.48;
 
     // A headland with two sharp points — the shapes that spike worst.
     const shape = [
@@ -1374,8 +1743,8 @@ figure('c-spacing', (f) => {
     const { ctx, w, h } = f;
     const s = Math.min(w, h);
     const rings = [
-      island(31, w * 0.36, h * 0.42, s * 0.12, 11, 0.3),
-      island(64, w * 0.68, h * 0.60, s * 0.09, 9, 0.3),
+      island(31, w * 0.40, h * 0.42, s * 0.13, 11, 0.3),
+      island(64, w * 0.62, h * 0.62, s * 0.10, 9, 0.3),
     ];
 
     const count = parseInt(countSlider.value, 10);
@@ -1474,8 +1843,8 @@ figure('c-voronoi', (f) => {
     const { ctx, w, h } = f;
     const s = Math.min(w, h);
     if (!pos1) {
-      pos1 = { x: w * 0.34, y: h * 0.44 };
-      pos2 = { x: w * 0.68, y: h * 0.58 };
+      pos1 = { x: w * 0.39, y: h * 0.42 };
+      pos2 = { x: w * 0.63, y: h * 0.60 };
     }
 
     const base1 = island(77, 0, 0, s * 0.115, 11, 0.32);
@@ -1646,6 +2015,434 @@ figure('c-affine', (f) => {
   }, { passive: false });
 
   f.canvas.style.touchAction = 'none';
+});
+
+/* ======================================================================== *
+ *  IX — the distance field
+ *
+ *  A JavaScript transcription of src/gl/shaders.js. The field is computed
+ *  once into a Float32Array and never touched again; every control under the
+ *  canvas only changes how that array is read. That separation is the whole
+ *  argument of the section, so the figure is built to make it visible: the
+ *  build time and the shade time are both reported, and only one of them
+ *  moves when you drag something.
+ * ======================================================================== */
+
+figure('c-field', (f) => {
+  const seg     = document.getElementById('field-seg');
+  const nSlider = document.getElementById('field-n');
+  const nOut    = document.getElementById('field-n-val');
+  const pSlider = document.getElementById('field-phase');
+  const pOut    = document.getElementById('field-phase-val');
+  const animBtn = document.getElementById('field-anim');
+  const zoomSeg = document.getElementById('field-zoom');
+  const zoomOut = document.getElementById('field-zoom-val');
+  const label   = document.getElementById('field-label');
+  const readout = document.getElementById('field-readout');
+
+  // The field is computed at the canvas's own device resolution, up to this
+  // cap. Anything less is a bitmap being stretched, and a stretched 1-pixel
+  // waterline is a blurred one — which is what a distance field is supposed
+  // not to look like.
+  const FIELD_MAX = 1100;
+  const INSET = 1.5;    // innermost radius, field px
+  const EXP   = 0.62;   // spacing exponent
+  const FAR   = 1e6;    // no seed within reach — the flood's discarded pixels
+
+  const SEA  = [207, 220, 216];
+  const LAND = [239, 228, 200];
+  const INK  = [106, 81, 56];
+  const TEAL = [47, 111, 126];
+  const NAVY = [43, 95, 138];
+
+  // Sea-to-ink at 257 steps. The shader reads its ink from a 1-D ramp texture;
+  // this is the same table, and it keeps three multiply-adds out of the loop.
+  const inkRamp = new Uint8Array(257 * 3);
+  for (let k = 0; k <= 256; k++) {
+    const a = k / 256;
+    inkRamp[k * 3]     = SEA[0] + (INK[0] - SEA[0]) * a;
+    inkRamp[k * 3 + 1] = SEA[1] + (INK[1] - SEA[1]) * a;
+    inkRamp[k * 3 + 2] = SEA[2] + (INK[2] - SEA[2]) * a;
+  }
+
+  const TITLES = [
+    'D(x) — distance to the shore, computed once',
+    'ι(d) — the spacing scale inverted: one ramp per waterline',
+    'Round to the nearest line, then shade',
+  ];
+
+  let mode = 2, phase = 0, animating = false, onScreen = false, raf = 0;
+  let fw = 0, fh = 0, extent = 60, zoom = 1, builtZoom = 0;
+  let dist = null, img = null, off = null, offCtx = null;
+  let rings = [], boxes = [];
+  let buildMs = 0, shadeMs = 0, pxScale = 1;
+
+  /* ---------------------------------------------------------------- build --
+     Two islands are few enough that the exact distance is cheaper than a jump
+     flood, so this measures it directly. Same result, different route.      */
+
+  function buildField() {
+    const t0 = performance.now();
+    const s = Math.min(fw, fh);
+
+    // Zoom scales the coast and nothing else. The extent stays fixed in screen
+    // pixels, which is section I's point made literal: the ripples are a
+    // graphic device, so they do not grow with the land.
+    extent = s * 0.26;
+    const cx = fw / 2, cy = fh / 2;
+    const at = (dx, dy, r, seed, n, wob) =>
+      samplePath(island(seed, cx + dx * fw * zoom, cy + dy * fh * zoom,
+                        s * r * zoom, n, wob), 6);
+
+    rings = [
+      at(-0.16, -0.08, 0.150, 77, 11, 0.32),
+      at(0.19, 0.13, 0.115, 21, 9, 0.30),
+    ];
+
+    boxes = rings.map((r) => {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const p of r) {
+        if (p.x < x0) x0 = p.x;
+        if (p.x > x1) x1 = p.x;
+        if (p.y < y0) y0 = p.y;
+        if (p.y > y1) y1 = p.y;
+      }
+      return { x0, y0, x1, y1 };
+    });
+
+    // Edges as flat typed arrays. The inner loop below runs tens of millions
+    // of times, and property lookups on {x, y} objects cost more there than
+    // the arithmetic does.
+    const segs = rings.map((ring) => {
+      const n = ring.length;
+      const g = {
+        n,
+        ax: new Float64Array(n), ay: new Float64Array(n),
+        dx: new Float64Array(n), dy: new Float64Array(n),
+        inv: new Float64Array(n),
+      };
+      for (let i = 0; i < n; i++) {
+        const a = ring[i], c = ring[(i + 1) % n];
+        g.ax[i] = a.x; g.ay[i] = a.y;
+        g.dx[i] = c.x - a.x; g.dy[i] = c.y - a.y;
+        g.inv[i] = 1 / (g.dx[i] * g.dx[i] + g.dy[i] * g.dy[i] || 1);
+      }
+      return g;
+    });
+
+    // Nothing past the extent is ever read, so nothing past it is computed —
+    // the same reason the real flood starts at 2^ceil(log2 E) instead of at
+    // half the image.
+    const reach = extent + 4;
+    const reach2 = reach * reach;
+    dist = new Float32Array(fw * fh);
+
+    for (let y = 0; y < fh; y++) {
+      for (let x = 0; x < fw; x++) {
+        let bestSq = Infinity, inside = false;
+
+        for (let r = 0; r < segs.length; r++) {
+          const box = boxes[r];
+          const bx = x < box.x0 ? box.x0 - x : x > box.x1 ? x - box.x1 : 0;
+          const by = y < box.y0 ? box.y0 - y : y > box.y1 ? y - box.y1 : 0;
+          if (bx * bx + by * by > reach2) continue;
+
+          const g = segs[r];
+          const ax = g.ax, ay = g.ay, sdx = g.dx, sdy = g.dy, inv = g.inv;
+          let cross = false;
+
+          for (let i = 0, n = g.n; i < n; i++) {
+            const axi = ax[i], ayi = ay[i], dxi = sdx[i], dyi = sdy[i];
+            let t = ((x - axi) * dxi + (y - ayi) * dyi) * inv[i];
+            t = t < 0 ? 0 : t > 1 ? 1 : t;
+            const ex = x - (axi + t * dxi), ey = y - (ayi + t * dyi);
+            const d2 = ex * ex + ey * ey;
+            if (d2 < bestSq) bestSq = d2;
+
+            // Sign by even-odd crossing — the same rule the stencil pass uses,
+            // and the same rule as ctx.fill(path, 'evenodd').
+            if ((ayi > y) !== (ayi + dyi > y) &&
+                x < axi + ((y - ayi) / dyi) * dxi) cross = !cross;
+          }
+          if (cross) inside = true;
+        }
+
+        const d = bestSq === Infinity ? FAR : Math.sqrt(bestSq);
+        dist[y * fw + x] = inside ? -d : d;
+      }
+    }
+
+    buildMs = performance.now() - t0;
+  }
+
+  /* ---------------------------------------------------------------- shade --
+     One pass over the field. N appears as a bound, never as a loop.         */
+
+  // Every pixel belonging to line j reads the same radius, thickness and ink,
+  // so those are computed once per frame instead of once per pixel — which is
+  // exactly why the shader reads its ink from a 1-D ramp texture. What stays
+  // per-pixel is the one thing that varies per pixel: inverting the scale.
+  let lineR = new Float32Array(0), lineW = new Float32Array(0), lineA = new Float32Array(0);
+
+  // The shader affords a pow per pixel; JavaScript does not. The inversion
+  // depends only on the distance, so it is tabulated over [0, E] once and read
+  // back per pixel. A bucket is well under a tenth of a pixel wide, and the
+  // band coverage below still uses the exact distance.
+  const LUT_N = 2048;
+  const idxLut = new Float32Array(LUT_N + 1);
+  let lutExtent = -1;
+
+  function buildLut(E, I) {
+    if (lutExtent === E) return;
+    const denom = I - E, inv = 1 / EXP;
+    for (let k = 0; k <= LUT_N; k++) {
+      let t = ((k / LUT_N) * E - E) / denom;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      idxLut[k] = Math.pow(t, inv);
+    }
+    lutExtent = E;
+  }
+
+  function buildLines(n, lo, hi, E, I, anim) {
+    const len = hi - lo + 1;
+    if (lineR.length < len) {
+      lineR = new Float32Array(len);
+      lineW = new Float32Array(len);
+      lineA = new Float32Array(len);
+    }
+    for (let j = lo; j <= hi; j++) {
+      const line = j - phase;
+      const slot = line < 0 ? 0 : line > n ? n : line;
+      const tt = n === 0 ? 0 : slot / n;
+      const q = j - lo;
+      lineR[q] = distanceAt(slot, n, E, I, EXP);
+      lineW[q] = (0.55 + 0.35 * tt) * pxScale;
+      // The seam: the outermost line fades out over one cycle as a new one
+      // fades in at the shore, so p = 0 and p = 1 are the same picture.
+      const seam = !anim ? 1 : j <= lo ? 1 - phase : j >= hi ? phase : 1;
+      lineA[q] = (0.30 + 0.66 * Math.pow(tt, 0.8)) * seam;
+    }
+  }
+
+  function shade() {
+    const t0 = performance.now();
+    const data = img.data;
+    const n = parseInt(nSlider.value, 10);
+    const E = extent, I = INSET;
+    const anim = (animating || phase > 0) ? 1 : 0;
+    const lo = anim, hi = n + anim;
+    const aa = 0.5;                 // half a field pixel: exact, since |grad d| = 1
+    const invAa = 1 / (2 * aa);
+    const contour = E / 6;
+    const lutK = LUT_N / E;
+
+    // Field pixels per CSS pixel, so line weights read the same on any display.
+    pxScale = fw / Math.max(f.w, 1);
+
+    buildLut(E, I);
+    if (mode === 2) buildLines(n, lo, hi, E, I, anim);
+
+    for (let i = 0, p = 0; i < dist.length; i++, p += 4) {
+      const sd = dist[i];
+      const ad = sd < 0 ? -sd : sd;
+      let r = SEA[0], g = SEA[1], b = SEA[2];
+
+      if (mode === 0) {
+        // The raw field, inside and out, with a contour every E/6 so the
+        // creases — the medial axes — show up.
+        if (ad < FAR * 0.5) {
+          const base = sd < 0 ? LAND : SEA;
+          const tint = sd < 0 ? INK : TEAL;
+          const u = ad > E ? 1 : ad / E;
+          const fr = (ad % contour) / contour;
+          const edge = (fr < 0.5 ? fr : 1 - fr) * contour;
+          let k = (1 - u) * 0.70 + (1 - smoothstep(0.5 * pxScale, 1.3 * pxScale, edge)) * 0.28;
+          if (k > 1) k = 1;
+          r = base[0] + (tint[0] - base[0]) * k;
+          g = base[1] + (tint[1] - base[1]) * k;
+          b = base[2] + (tint[2] - base[2]) * k;
+        }
+      } else if (sd < 0) {
+        r = LAND[0]; g = LAND[1]; b = LAND[2];
+      } else if (ad <= E) {
+        const idx = idxLut[(ad * lutK) | 0] * n;
+
+        if (mode === 1) {
+          // The fractional index as a sawtooth: one ramp per waterline, and
+          // you can see the power scale crowding them against the shore.
+          const fr = idx - Math.floor(idx);
+          const near = fr < 0.5 ? fr : 1 - fr;
+          let k = 0.08 + 0.54 * fr;
+          if (near < 0.04) k = 0.95;          // the integer indices: the lines
+          r = SEA[0] + (NAVY[0] - SEA[0]) * k;
+          g = SEA[1] + (NAVY[1] - SEA[1]) * k;
+          b = SEA[2] + (NAVY[2] - SEA[2]) * k;
+        } else {
+          // Lines sit at integer indices when still and at j - p while
+          // animating, so over one cycle each slides outward into the slot
+          // the line ahead of it held. The ends cross-fade; the loop closes.
+          const j = (idx + phase + 0.5) | 0;
+          if (j >= lo && j <= hi) {
+            const q = j - lo;
+            let e = ad - lineR[q];
+            if (e < 0) e = -e;
+            // smoothstep, inlined: the band edge, half a pixel wide
+            let u = (e - lineW[q] + aa) * invAa;
+            u = u < 0 ? 0 : u > 1 ? 1 : u;
+            const k = (((1 - u * u * (3 - 2 * u)) * lineA[q] * 256) | 0) * 3;
+            r = inkRamp[k]; g = inkRamp[k + 1]; b = inkRamp[k + 2];
+          }
+        }
+      }
+
+      data[p] = r; data[p + 1] = g; data[p + 2] = b; data[p + 3] = 255;
+    }
+
+    offCtx.putImageData(img, 0, 0);
+    // Smoothed, because a single sample of a JavaScript loop is mostly noise
+    // and the number here is meant to be read while dragging.
+    const dt = performance.now() - t0;
+    shadeMs = shadeMs ? shadeMs * 0.75 + dt * 0.25 : dt;
+  }
+
+  function ringPathAt(ctx, ring, k) {
+    ctx.beginPath();
+    for (let i = 0; i < ring.length; i++) {
+      const p = ring[i];
+      if (i) ctx.lineTo(p.x * k, p.y * k);
+      else ctx.moveTo(p.x * k, p.y * k);
+    }
+    ctx.closePath();
+  }
+
+  f.draw = function () {
+    const { ctx, w, h } = f;
+    if (!w || !h) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const tw = Math.max(160, Math.min(FIELD_MAX, Math.round(w * dpr)));
+    const th = Math.max(120, Math.round((tw * h) / w));
+    if (tw !== fw || th !== fh || zoom !== builtZoom) {
+      fw = tw; fh = th;
+      if (!off) off = document.createElement('canvas');
+      if (off.width !== fw || off.height !== fh) {
+        off.width = fw;
+        off.height = fh;
+        offCtx = off.getContext('2d');
+        img = offCtx.createImageData(fw, fh);
+        lutExtent = -1;
+      }
+      buildField();
+      builtZoom = zoom;
+    }
+
+    shade();
+
+    clearSea(ctx, w, h);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, w, h);
+
+    // The field is soft because it is computed small. The coast is not, so it
+    // goes back over the top at full resolution.
+    const k = w / fw;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 1.25;
+    ctx.fillStyle = COLOR.land;
+    ctx.strokeStyle = COLOR.coast;
+    rings.forEach((ring) => {
+      ringPathAt(ctx, ring, k);
+      if (mode !== 0) ctx.fill();
+      ctx.stroke();
+    });
+
+    label.textContent = TITLES[mode];
+    nOut.textContent = nSlider.value;
+    pOut.textContent = phase.toFixed(2);
+    zoomOut.textContent = `${zoom.toFixed(1)}×`;
+    readout.innerHTML =
+      `field <b>${buildMs.toFixed(0)} ms</b> · once per view &nbsp;|&nbsp; ` +
+      `shade <b>${shadeMs.toFixed(1)} ms</b> · every frame &nbsp;|&nbsp; ` +
+      `N = <b>${nSlider.value}</b> · costs nothing`;
+  };
+
+  function syncSeg() {
+    [...seg.querySelectorAll('button')].forEach((b) =>
+      b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)));
+  }
+
+  seg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    mode = Number(btn.dataset.mode);
+    syncSeg();
+    f.draw();
+  });
+
+  nSlider.addEventListener('input', () => f.draw());
+
+  // Zoom scales the coastline, not the waterlines — so the field has to be
+  // rebuilt, and the readout shows you paying for it exactly once.
+  zoomSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const dir = Number(btn.dataset.zoom);
+    zoom = dir === 0 ? 1
+         : Math.max(0.55, Math.min(3.2, zoom * (dir > 0 ? 1.35 : 1 / 1.35)));
+    f.draw();
+  });
+
+  pSlider.addEventListener('input', () => {
+    phase = parseFloat(pSlider.value);
+    if (mode !== 2) { mode = 2; syncSeg(); }
+    f.draw();
+  });
+
+  // Paced by the clock, not by the frame count, so a slower shade makes the
+  // drift no faster or slower — only less smooth.
+  let lastT = 0;
+  function tick(now) {
+    if (lastT) phase = (phase + (now - lastT) / 7000) % 1;
+    lastT = now;
+    pSlider.value = phase.toFixed(2);
+    f.draw();
+    raf = requestAnimationFrame(tick);
+  }
+
+  if (reduceMotion) {
+    animBtn.disabled = true;
+    animBtn.title = 'Disabled by your reduced-motion setting — scrub the phase instead';
+  }
+
+  animBtn.addEventListener('click', () => {
+    animating = !animating;
+    animBtn.setAttribute('aria-pressed', String(animating));
+    animBtn.textContent = animating ? 'Stop' : 'Animate';
+    if (animating) {
+      if (mode !== 2) { mode = 2; syncSeg(); }
+      lastT = 0;
+      if (onScreen && !raf) raf = requestAnimationFrame(tick);
+    } else {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      f.draw();
+    }
+  });
+
+  // Same courtesy as the other figures: nothing runs off-screen.
+  f.animated = true;
+  f.start = () => {
+    onScreen = true;
+    lastT = 0;
+    if (animating && !raf && !reduceMotion) raf = requestAnimationFrame(tick);
+  };
+  f.stop = () => {
+    onScreen = false;
+    cancelAnimationFrame(raf);
+    raf = 0;
+  };
 });
 
 /* ======================================================================== *

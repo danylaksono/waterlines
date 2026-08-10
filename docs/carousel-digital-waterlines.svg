@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Illustration for a carousel slide on digital waterlines</title>
+  <desc id="desc">A coastal map illustration showing offset waterlines around a shoreline and a modern digital challenge with overlapping lines at islands and straits.</desc>
+
+  <rect width="1080" height="1350" fill="#f6efe6"/>
+
+  <text x="540" y="120" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="700" fill="#203647">Digital waterlines</text>
+  <text x="540" y="170" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" fill="#5d6b74">From hand-drawn coastal lines to algorithmic geometry</text>
+
+  <rect x="90" y="220" width="420" height="420" rx="28" fill="#fffdf9" stroke="#d8cdbd" stroke-width="3"/>
+  <rect x="570" y="220" width="420" height="420" rx="28" fill="#fffdf9" stroke="#d8cdbd" stroke-width="3"/>
+
+  <text x="300" y="265" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#2f6f7e">Tradisi lama</text>
+  <text x="780" y="265" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#2f6f7e">Peta digital modern</text>
+
+  <g transform="translate(0,0)">
+    <path d="M 170 540 C 205 470, 255 440, 305 460 C 340 474, 365 518, 390 530 C 420 545, 430 560, 420 590 C 408 626, 374 642, 335 642 C 292 642, 240 630, 208 610 C 180 594, 155 585, 140 564 C 132 553, 152 548, 170 540 Z" fill="none" stroke="#203647" stroke-width="8" stroke-linecap="round"/>
+    <path d="M 172 538 C 206 474, 255 446, 300 463 C 335 476, 360 515, 386 526 C 414 539, 426 558, 418 582" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    <path d="M 176 544 C 208 486, 257 458, 299 472 C 330 483, 352 518, 375 529 C 401 540, 410 552, 404 571" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+    <path d="M 180 550 C 208 497, 255 474, 296 485 C 325 493, 345 519, 366 527 C 387 535, 396 546, 392 559" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <path d="M 185 556 C 210 508, 252 485, 289 493 C 314 500, 332 520, 352 527 C 368 533, 377 541, 372 549" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 190 562 C 212 518, 248 496, 284 503 C 304 508, 319 520, 338 526 C 352 530, 360 536, 356 543" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="1"/>
+    <path d="M 200 570 C 222 529, 245 513, 275 518 C 294 522, 306 530, 321 535" fill="none" stroke="#b5693b" stroke-width="2.5" stroke-linecap="round" opacity="0.95"/>
+  </g>
+
+  <g transform="translate(0,0)">
+    <path d="M 645 555 C 700 500, 760 495, 803 515 C 842 533, 860 572, 850 606 C 838 646, 800 663, 757 662 C 706 660, 663 640, 635 611 C 610 585, 610 565, 645 555 Z" fill="none" stroke="#203647" stroke-width="8" stroke-linecap="round"/>
+    <path d="M 652 548 C 690 514, 744 507, 783 520 C 811 531, 829 555, 833 579" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+    <path d="M 658 552 C 694 526, 743 520, 776 532 C 804 542, 820 562, 820 579" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+    <path d="M 664 557 C 700 536, 742 533, 771 544 C 795 553, 808 569, 804 586" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.72"/>
+    <path d="M 670 562 C 706 545, 742 542, 770 553 C 790 561, 802 575, 796 590" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="0.88"/>
+    <path d="M 678 568 C 710 554, 740 552, 763 562 C 780 569, 788 580, 782 593" fill="none" stroke="#2f6f7e" stroke-width="3" stroke-linecap="round" opacity="1"/>
+
+    <path d="M 715 545 C 735 530, 760 522, 785 522" fill="none" stroke="#b5693b" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 725 576 C 742 566, 757 564, 772 568" fill="none" stroke="#b5693b" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 720 598 C 738 592, 754 594, 766 600" fill="none" stroke="#b5693b" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+
+    <circle cx="770" cy="550" r="10" fill="#203647"/>
+    <circle cx="755" cy="585" r="10" fill="#203647"/>
+    <circle cx="745" cy="618" r="10" fill="#203647"/>
+  </g>
+
+  <path d="M 450 420 C 505 395, 540 395, 585 423" fill="none" stroke="#3c4d5f" stroke-width="4" stroke-dasharray="10 10" stroke-linecap="round"/>
+  <path d="M 460 440 L 575 440" fill="none" stroke="#b5693b" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="460" cy="440" r="9" fill="#b5693b"/>
+  <circle cx="575" cy="440" r="9" fill="#b5693b"/>
+
+  <rect x="170" y="760" width="740" height="420" rx="28" fill="#fdf7ee" stroke="#d8cdbd" stroke-width="3"/>
+  <text x="540" y="815" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#203647">Masalah algoritmik</text>
+
+  <text x="240" y="875" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#2f6f7e">1. Offset garis</text>
+  <text x="240" y="910" font-family="Inter, Arial, sans-serif" font-size="20" fill="#4f5964">Garis-garis diposisikan sejauh jarak tertentu dari pantai.</text>
+
+  <text x="240" y="980" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#2f6f7e">2. Bertemu dan berpotongan</text>
+  <text x="240" y="1015" font-family="Inter, Arial, sans-serif" font-size="20" fill="#4f5964">Di pulau, selat, dan lekukan, jalur dapat saling menumpuk.</text>
+
+  <text x="240" y="1085" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#2f6f7e">3. Menjadi terlalu rapat</text>
+  <text x="240" y="1120" font-family="Inter, Arial, sans-serif" font-size="20" fill="#4f5964">Solusinya bukan sekadar menggambar ulang, melainkan algoritma.</text>
+
+  <g transform="translate(650 860)">
+    <rect x="0" y="0" width="220" height="210" rx="20" fill="#fffdf9" stroke="#d8cdbd" stroke-width="2"/>
+    <path d="M 40 120 C 60 95, 95 95, 120 120 C 145 145, 175 150, 194 125" fill="none" stroke="#2f6f7e" stroke-width="4" stroke-linecap="round"/>
+    <path d="M 36 142 C 60 118, 95 118, 121 141 C 148 166, 178 171, 193 146" fill="none" stroke="#2f6f7e" stroke-width="4" stroke-linecap="round"/>
+    <path d="M 33 165 C 55 148, 94 148, 119 168 C 145 190, 176 191, 194 170" fill="none" stroke="#2f6f7e" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="124" cy="80" r="15" fill="#203647"/>
+    <circle cx="160" cy="102" r="10" fill="#b5693b"/>
+  </g>
+
+  <text x="540" y="1285" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="20" fill="#5d6b74">Illustration for the carousel slide about translating visual rules into computational procedure.</text>
+</svg>
