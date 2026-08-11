@@ -173,6 +173,14 @@ mathematics, the measurements, the things that did not work, and why the code
 is shaped the way it is. I had some fun with trying out different ways to make this
 work so this is where I put the notes.
 
+[`docs/delimitation.html`](docs/delimitation.html) is a side quest that turned
+into a finding. The seam that forms between two islands' waterlines is the same
+geometric object UNCLOS calls a median line, and the ripple family is the
+envelope-of-arcs construction for the 12 / 24 / 200 M limits. The page is an
+interactive explainer for that correspondence — and for why this renderer,
+working in Web Mercator pixels, gets the boundary wrong by
+½·R·tan(φ)·h². Written up in [`docs/delimitation.md`](docs/delimitation.md).
+
 ```sh
 npm test                 # unit tests
 node scripts/smoke.mjs   # end-to-end browser check, with timings
