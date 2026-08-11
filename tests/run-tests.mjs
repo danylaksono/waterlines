@@ -38,6 +38,7 @@ import { solve } from '../src/adapters/transform.js';
 import { latticeCell, windroseNetwork } from '../studio/js/rhumb.js';
 import { rowInterval, snapInterval } from '../studio/js/hachure.js';
 import { demZoomFor } from '../studio/js/dem.js';
+import { distanceTransform, moundField, moundProfile } from '../studio/js/relief.js';
 
 // --------------------------------------------------------------------------
 
@@ -738,4 +739,129 @@ test('the DEM level tracks the map, one level per zoom', () => {
   // Clamped to what the dataset actually holds, at both ends.
   assert.equal(demZoomFor(20, 3), 15);
   assert.equal(demZoomFor(0, 64), 0);
+});
+
+// --------------------------------------------------------------------------
+// the studio's invented relief
+
+test('the distance transform is exact Euclidean, not a chamfer', () => {
+  // One feature cell in the middle of a 9x9 grid: every distance is known.
+  const cols = 9;
+  const rows = 9;
+  const mask = new Uint8Array(cols * rows);
+  mask[4 * cols + 4] = 1;
+
+  const d = distanceTransform(mask, cols, rows, true);
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const expected = Math.hypot(i - 4, j - 4);
+      assert.ok(
+        Math.abs(d[j * cols + i] - expected) < 1e-6,
+        `(${i},${j}) gave ${d[j * cols + i]}, wanted ${expected}`
+      );
+    }
+  }
+  // A chamfer would round the diagonal up: the exact answer here is sqrt(32).
+  assert.ok(Math.abs(d[0] - Math.sqrt(32)) < 1e-6);
+});
+
+test('the distance transform survives long empty runs', () => {
+  // Regression. The parabola intersection subtracts one cost from another, so
+  // seeding absent cells with Infinity yields Infinity - Infinity = NaN, every
+  // comparison against it is false, and the algorithm keeps the wrong parabola
+  // and returns arbitrary distances. It showed up as an invented coastline
+  // forty times steeper than the one asked for, which is exactly the kind of
+  // wrong that still renders and still looks like a map.
+  const cols = 64;
+  const rows = 3;
+  const mask = new Uint8Array(cols * rows);
+  mask[1 * cols + 0] = 1;
+
+  const d = distanceTransform(mask, cols, rows, true);
+  for (const value of d) assert.ok(Number.isFinite(value), 'no NaN or Infinity');
+  for (let i = 0; i < cols; i++) {
+    assert.ok(Math.abs(d[1 * cols + i] - i) < 1e-6, `run distance at ${i}`);
+  }
+  // Monotonic away from the feature, which a NaN-poisoned run is not.
+  for (let i = 1; i < cols; i++) assert.ok(d[1 * cols + i] > d[1 * cols + i - 1]);
+});
+
+test('a drawn hill is flat on top, flat at the base and steepest at the waist', () => {
+  assert.equal(moundProfile(0), 1);
+  assert.equal(moundProfile(1), 0);
+  assert.equal(moundProfile(-0.5), 1, 'clamped above the summit');
+  assert.equal(moundProfile(2), 0, 'clamped beyond the base');
+
+  const slopeAt = (t) => (moundProfile(t - 1e-4) - moundProfile(t + 1e-4)) / 2e-4;
+  assert.ok(slopeAt(0.01) < 0.1, 'summit is flat');
+  assert.ok(slopeAt(0.99) < 0.1, 'base is flat');
+  assert.ok(slopeAt(0.5) > slopeAt(0.2) && slopeAt(0.5) > slopeAt(0.8));
+  // The waist slope is 1.5 per unit of t, which is what `moundField` divides
+  // by to hit a requested steepness.
+  assert.ok(Math.abs(slopeAt(0.5) - 1.5) < 1e-3);
+});
+
+test('a mound is built to the steepness it was asked for', () => {
+  // 512 px across at zoom 10 on the equator, sampled every 4 px.
+  const scale = 512 * Math.pow(2, 10);
+  const spec = {
+    matrix: { a: scale, b: 0, c: 0, d: scale, e: 0, f: 0 },
+    width: 400,
+    height: 400,
+    pad: 0,
+    step: 4,
+    lat: 0,
+    peaks: [{ x: 50, y: 50, elev: 1000 }],
+    radiusPx: 120,
+    steepnessDeg: 30,
+  };
+  const field = moundField(spec);
+
+  let steepest = 0;
+  for (let j = 1; j < field.rows - 1; j++) {
+    for (let i = 1; i < field.cols - 1; i++) {
+      const k = j * field.cols + i;
+      const dx =
+        (field.height[k + 1] - field.height[k - 1]) / (2 * field.groundStep);
+      const dy =
+        (field.height[k + field.cols] - field.height[k - field.cols]) /
+        (2 * field.groundStep);
+      steepest = Math.max(steepest, Math.hypot(dx, dy));
+    }
+  }
+  // Within a few per cent: the waist falls between samples, so the discrete
+  // maximum sits just under the continuous one.
+  const wanted = Math.tan((30 * Math.PI) / 180);
+  assert.ok(
+    Math.abs(steepest - wanted) / wanted < 0.05,
+    `steepest sample was ${steepest.toFixed(3)}, wanted about ${wanted.toFixed(3)}`
+  );
+});
+
+test('mounds combine by maximum, so neighbouring hills keep their summits', () => {
+  const scale = 512 * Math.pow(2, 10);
+  const base = {
+    matrix: { a: scale, b: 0, c: 0, d: scale, e: 0, f: 0 },
+    width: 400,
+    height: 400,
+    pad: 0,
+    step: 4,
+    lat: 0,
+    radiusPx: 120,
+    steepnessDeg: 30,
+  };
+  const one = moundField({ ...base, peaks: [{ x: 30, y: 40, elev: 1000 }] });
+  const two = moundField({
+    ...base,
+    peaks: [
+      { x: 30, y: 40, elev: 1000 },
+      { x: 45, y: 40, elev: 1000 },
+    ],
+  });
+
+  const at = (f, i, j) => f.height[j * f.cols + i];
+  // Summing would raise the first summit when a neighbour arrives; taking the
+  // maximum leaves it exactly where it was.
+  assert.ok(Math.abs(at(two, 30, 40) - at(one, 30, 40)) < 1e-6);
+  assert.ok(at(two, 45, 40) > at(one, 45, 40), 'the second hill is there');
 });

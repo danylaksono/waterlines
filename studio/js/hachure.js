@@ -39,7 +39,9 @@
 
 import { blitTransform } from '../../src/render/RasterCache.js';
 import { affineFromMap } from '../../src/adapters/transform.js';
+import { latToMercatorY, lngToMercatorX } from '../../src/core/mercator.js';
 import { sampleHeightField } from './dem.js';
+import { findPeaks, moundField, shoreField } from './relief.js';
 
 /** Margin around the viewport, CSS px: how far the view can pan before a rebuild. */
 const PAD = 128;
@@ -51,6 +53,8 @@ const STEP = 3;
 const SETTLE_MS = 140;
 
 export const DEFAULTS = {
+  /** `terrain` (measured), `mounds` (real summits, drawn hills), `shore` (no data). */
+  source: 'terrain',
   spacing: 7,
   minSlopeDeg: 4,
   maxSlopeDeg: 20,
@@ -59,7 +63,16 @@ export const DEFAULTS = {
   generalise: 2,
   ink: '#4a3a26',
   opacity: 0.85,
+  /** shore: how far inland the land keeps rising, CSS px. */
+  reachPx: 90,
+  /** shore and mounds: the slope the invented surface is built to. */
+  steepnessDeg: 22,
+  /** mounds: base radius of the largest hill, CSS px. */
+  moundPx: 95,
 };
+
+/** Which sources need elevation tiles, and therefore the network. */
+export const SOURCES_NEEDING_DEM = new Set(['terrain', 'mounds']);
 
 // --------------------------------------------------------------------------
 // field preparation
@@ -693,11 +706,93 @@ export function createHachures(map, options = {}) {
   let timer = null;
   let stats = { strokes: 0, tiles: 0, missing: 0, demZoom: 0, interval: 0, pending: false };
   let onStatus = options.onStatus || (() => {});
+  /** Coastline rings for the `shore` source; the studio owns the parsed data. */
+  let getRings = options.getRings || (() => []);
+  /** Supplied summits for `mounds`, or null to extract them from the DEM. */
+  let peakList = options.peaks || null;
 
   const size = () => {
     const gl = map.getCanvas();
     return { width: gl.clientWidth, height: gl.clientHeight };
   };
+
+  /**
+   * Project a supplied peak list onto the sample lattice.
+   *
+   * This is the seam an external summit list arrives through - a nationwide
+   * H3/DuckDB extract, a gazetteer, a hand-placed set of hills. With one
+   * supplied, `mounds` never touches the network: the only thing the DEM was
+   * being fetched for was to find the summits, and someone else has done that
+   * better and offline.
+   */
+  function projectPeaks(list, spec) {
+    const { matrix, pad, step } = spec;
+    const out = [];
+    for (const peak of list) {
+      const mx = lngToMercatorX(peak.lng);
+      const my = latToMercatorY(peak.lat);
+      out.push({
+        x: (matrix.a * mx + matrix.c * my + matrix.e + pad) / step,
+        y: (matrix.b * mx + matrix.d * my + matrix.f + pad) / step,
+        elev: peak.elev ?? 1,
+      });
+    }
+    // Highest first, matching `findPeaks`, since `moundField` sizes hills off
+    // the first and last entries.
+    return out.sort((a, b) => b.elev - a.elev);
+  }
+
+  /**
+   * Produce the surface the tracer will engrave, from whichever source is
+   * selected. Only `terrain` and an unsupplied `mounds` need the network.
+   *
+   * @returns {Promise<import('./dem.js').HeightField|null>} null if superseded
+   */
+  async function buildField(spec, mine) {
+    if (state.source === 'shore') {
+      return shoreField({
+        ...spec,
+        rings: getRings(),
+        reachPx: state.reachPx,
+        steepnessDeg: state.steepnessDeg,
+      });
+    }
+
+    const mound = (peaks, extra) => ({
+      ...moundField({
+        ...spec,
+        peaks,
+        radiusPx: state.moundPx,
+        steepnessDeg: state.steepnessDeg,
+      }),
+      ...extra,
+    });
+
+    if (state.source === 'mounds' && peakList) {
+      return mound(projectPeaks(peakList, spec), { supplied: true });
+    }
+
+    const dem = await sampleHeightField({
+      ...spec,
+      cancelled: () => mine !== token,
+    });
+    if (!dem || mine !== token) return null;
+    if (state.source === 'terrain') return dem;
+
+    // Summits from the measured surface, then the surface thrown away.
+    //
+    // Summits are sought at *half* the mound radius, so neighbouring hills
+    // overlap by half and merge, through `moundField`'s maximum, into ranges
+    // with several tops. Searching at the full radius instead leaves every
+    // hill standing alone, and a page of isolated radially symmetric mounds
+    // reads as a scatter of rosettes rather than as mountains.
+    const peaks = findPeaks(dem, { radius: state.moundPx / (2 * spec.step) });
+    return mound(peaks, {
+      demZoom: dem.demZoom,
+      tiles: dem.tiles,
+      missing: dem.missing,
+    });
+  }
 
   /**
    * Rebuild for the view as it stands. Everything before the first `await` is
@@ -715,17 +810,18 @@ export function createHachures(map, options = {}) {
     stats = { ...stats, pending: true };
     onStatus(stats);
 
+    const spec = {
+      matrix,
+      width,
+      height,
+      pad: PAD,
+      step: STEP,
+      lat: centre.lat,
+    };
+
     let field;
     try {
-      field = await sampleHeightField({
-        matrix,
-        width,
-        height,
-        pad: PAD,
-        step: STEP,
-        lat: centre.lat,
-        cancelled: () => mine !== token,
-      });
+      field = await buildField(spec, mine);
     } catch (error) {
       stats = { ...stats, pending: false, error: error.message };
       onStatus(stats);
@@ -755,10 +851,13 @@ export function createHachures(map, options = {}) {
     place();
 
     stats = {
+      source: state.source,
       strokes: built.strokes.length,
-      tiles: field.tiles,
-      missing: field.missing,
-      demZoom: field.demZoom,
+      tiles: field.tiles || 0,
+      missing: field.missing || 0,
+      demZoom: field.demZoom || 0,
+      peaks: field.peaks || 0,
+      supplied: !!field.supplied,
       interval: built.interval,
       relief: built.relief,
       pending: false,
@@ -858,6 +957,33 @@ export function createHachures(map, options = {}) {
     },
 
     isEnabled: () => state.enabled,
+
+    /** Whether a summit list has been supplied, which takes `mounds` offline. */
+    hasSuppliedPeaks: () => !!peakList,
+
+    /**
+     * Supply the summits for the `mounds` source, instead of having them
+     * picked out of the DEM.
+     *
+     * This is where a precomputed extract belongs - the H3/DuckDB kind, say,
+     * which can apply a real prominence test over a whole country rather than a
+     * window maximum over one screenful, and which costs no network here
+     * because the answer is already in hand.
+     *
+     * @param {Array<{lng:number, lat:number, elev?:number}>|null} peaks
+     */
+    setPeaks(peaks) {
+      peakList = peaks && peaks.length ? peaks : null;
+      if (state.enabled && state.source === 'mounds') schedule();
+      return handle;
+    },
+
+    /** @param {() => import('../../src/core/rings.js').Ring[]} fn */
+    setRingSource(fn) {
+      getRings = fn;
+      if (state.enabled && state.source === 'shore') schedule();
+      return handle;
+    },
 
     /** @param {(stats:Object) => void} fn */
     onStatus(fn) {

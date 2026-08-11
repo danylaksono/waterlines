@@ -156,10 +156,62 @@ export function demZoomFor(zoom, step) {
  * @property {number} rows
  * @property {number} step sample spacing in screen CSS px
  * @property {number} groundStep sample spacing in ground metres
- * @property {number} demZoom the level actually fetched
- * @property {number} tiles tiles the field was stitched from
- * @property {number} missing how many of those came back empty
+ * @property {number} [demZoom] the level actually fetched, where one was
+ * @property {number} [tiles] tiles the field was stitched from
+ * @property {number} [missing] how many of those came back empty
  */
+
+/**
+ * @typedef {Object} FieldSpec
+ * @property {import('../../src/render/WaterlineRenderer.js').Affine} matrix
+ *   normalised mercator to screen
+ * @property {number} width  viewport CSS px
+ * @property {number} height viewport CSS px
+ * @property {number} pad    margin around the viewport, CSS px
+ * @property {number} step   sample spacing, CSS px
+ * @property {number} lat    view-centre latitude, for the metre scale
+ */
+
+/**
+ * The lattice every relief source shares: how many samples, how far apart on
+ * the ground, and how to get from a sample back to mercator.
+ *
+ * Shared rather than repeated because the three sources have to agree exactly.
+ * A synthetic field and a real one differing by half a sample would show up as
+ * hachures sliding against the coastline when you switch between them, and the
+ * tracer's slopes are only meaningful because `groundStep` carries the metre
+ * scale - a source that got that wrong would look plausible and be wrong by a
+ * factor of the latitude's cosine.
+ *
+ * @param {FieldSpec} spec
+ */
+export function fieldGeometry(spec) {
+  const { matrix, width, height, pad, step, lat } = spec;
+
+  const inverse = invert(matrix);
+  // Screen pixels per unit of normalised mercator, i.e. the map's world size.
+  const scale = Math.sqrt(Math.abs(matrix.a * matrix.d - matrix.c * matrix.b));
+  const zoom = Math.log2(scale / 512);
+
+  return {
+    cols: Math.ceil((width + 2 * pad) / step) + 1,
+    rows: Math.ceil((height + 2 * pad) / step) + 1,
+    step,
+    pad,
+    zoom,
+    matrix,
+    // One sample step in ground metres. The `cos(lat)` inside
+    // `metersPerMercatorUnit` is what stops Mercator's vertical stretch from
+    // reading as gentler terrain the further north you go.
+    groundStep: (step / worldSize(zoom)) * metersPerMercatorUnit(lat),
+    /** Screen CSS px to normalised mercator. */
+    toMercator: (x, y) => [
+      inverse.a * x + inverse.c * y + inverse.e,
+      inverse.b * x + inverse.d * y + inverse.f,
+    ],
+    inverse,
+  };
+}
 
 /**
  * Build a height field covering a screen rectangle.
@@ -193,18 +245,8 @@ export async function sampleHeightField(spec) {
     cancelled = () => false,
   } = spec;
 
-  const cols = Math.ceil((width + 2 * pad) / step) + 1;
-  const rows = Math.ceil((height + 2 * pad) / step) + 1;
-
-  const inverse = invert(matrix);
-  const toMercator = (x, y) => [
-    inverse.a * x + inverse.c * y + inverse.e,
-    inverse.b * x + inverse.d * y + inverse.f,
-  ];
-
-  // Screen pixels per unit of normalised mercator, i.e. the map's world size.
-  const scale = Math.sqrt(Math.abs(matrix.a * matrix.d - matrix.c * matrix.b));
-  const zoom = Math.log2(scale / 512);
+  const geometry = fieldGeometry(spec);
+  const { cols, rows, zoom, groundStep, toMercator, inverse } = geometry;
 
   // The corners are enough for a bounding box even under rotation: an affine
   // maps the rectangle to a parallelogram, whose extent is its corners'.
@@ -295,10 +337,7 @@ export async function sampleHeightField(spec) {
     cols,
     rows,
     step,
-    // One sample step in ground metres. The `cos(lat)` inside
-    // `metersPerMercatorUnit` is what stops Mercator's vertical stretch from
-    // reading as gentler terrain the further north you go.
-    groundStep: (step / worldSize(zoom)) * metersPerMercatorUnit(lat),
+    groundStep,
     demZoom,
     tiles: keys.length,
     missing,

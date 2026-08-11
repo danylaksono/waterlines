@@ -25,7 +25,12 @@ import {
 } from "./geojson-input.js";
 import { exportPng } from "./export-png.js";
 import { DEM_ATTRIBUTION } from "./dem.js";
-import { DEFAULTS as HACHURE, createHachures } from "./hachure.js";
+import {
+  DEFAULTS as HACHURE,
+  SOURCES_NEEDING_DEM,
+  createHachures,
+} from "./hachure.js";
+import { geojsonToRings } from "../../src/core/rings.js";
 import { createRhumb } from "./rhumb.js";
 import { createTimeline, datePluginLoaded } from "./timeline.js";
 import {
@@ -57,6 +62,10 @@ const state = {
   compass: null,
   rhumb: null,
   hachures: null,
+  hachurePanel: null,
+  // Parsed once per dataset and handed to the `shore` relief source, which
+  // rasterises them on every rebuild.
+  rings: [],
   data: null,
   basemap: "paper",
   panel: null,
@@ -140,7 +149,10 @@ async function boot() {
 
   // Also off until asked for, and for a harder reason than the rhumb lines:
   // it is the one feature here that fetches data from someone else's server.
-  state.hachures = createHachures(state.map, { onStatus: setHachureStatus });
+  state.hachures = createHachures(state.map, {
+    onStatus: setHachureStatus,
+    getRings: () => state.rings,
+  });
 
   // Built regardless of which basemap starts, so switching to the historical
   // one is instant; `setBasemap` reveals it. Skipped entirely if the CDN
@@ -186,6 +198,12 @@ async function boot() {
 function useData(data, options = {}) {
   state.data = data;
   state.overlay.setData(data.geojson);
+
+  // The `shore` relief source needs the same rings the overlay does. Parsed
+  // here rather than per rebuild: it is the only part of a hachure refresh that
+  // depends on the data instead of the view.
+  state.rings = geojsonToRings(data.geojson);
+  if (state.hachures) state.hachures.setRingSource(() => state.rings);
 
   const source = state.map.getSource("land");
   if (source) source.setData(data.geojson);
@@ -395,7 +413,7 @@ function buildDataSection(body) {
  * a line to the map's attribution.
  */
 function buildHachureSection(body) {
-  buildPanel(
+  const panel = buildPanel(
     body,
     [
       {
@@ -403,10 +421,77 @@ function buildHachureSection(body) {
         label: "Draw hachures",
         type: "checkbox",
         value: false,
+      },
+      {
+        name: "source",
+        label: "Relief from",
+        type: "buttons",
+        value: HACHURE.source,
+        options: [
+          {
+            value: "terrain",
+            label: "Terrain",
+            title: "Measured elevation, fetched from AWS Open Data",
+          },
+          {
+            value: "mounds",
+            label: "Mounds",
+            title: "Real summits, redrawn as idealised hills",
+          },
+          {
+            value: "shore",
+            label: "Shore",
+            title: "Invented relief from your own coastline — no data fetched",
+          },
+        ],
         hint:
-          "Fetches elevation tiles from AWS Open Data. Terrain needs room to " +
-          "show: below about zoom 7 the DEM is coarser than the strokes and " +
-          "there is little to see.",
+          "Terrain is the survey: real slopes, and it needs room to show — " +
+          "below about zoom 7 the DEM is coarser than the strokes. Mounds keeps " +
+          "the summits and throws the shape away, the way relief was drawn " +
+          "before contour surveying. Shore invents the lot from the polygons " +
+          "already loaded, fetches nothing, and works on coastlines that were " +
+          "never real.",
+      },
+      {
+        name: "reachPx",
+        label: "Reach inland",
+        type: "range",
+        min: 20,
+        max: 260,
+        step: 5,
+        value: HACHURE.reachPx,
+        format: (v) => `${v} px`,
+        hint:
+          "Shore only. How far in the land keeps rising — the mirror of the " +
+          "waterlines’ reach from shore, which is the same distance measured " +
+          "the other way.",
+      },
+      {
+        name: "moundPx",
+        label: "Hill size",
+        type: "range",
+        min: 16,
+        max: 140,
+        step: 2,
+        value: HACHURE.moundPx,
+        format: (v) => `${v} px`,
+        hint:
+          "Mounds only. Also the spacing rule for finding summits: two tops " +
+          "closer together than this are drawn as one hill.",
+      },
+      {
+        name: "steepnessDeg",
+        label: "Invented steepness",
+        type: "range",
+        min: 5,
+        max: 45,
+        step: 1,
+        value: HACHURE.steepnessDeg,
+        format: (v) => `${v}°`,
+        hint:
+          "Shore and mounds. The slope the made-up surface is built to, which " +
+          "sets how heavy its hachures come out. It is scaled through the map " +
+          "scale, so an invented hillside looks the same at every zoom.",
       },
       {
         name: "spacing",
@@ -502,12 +587,20 @@ function buildHachureSection(body) {
     (name, value) => {
       if (name === "enabled") {
         state.hachures.setEnabled(value);
-        refreshAttribution();
       } else {
         state.hachures.setOptions({ [name]: value });
       }
+      if (name === "enabled" || name === "source") {
+        showRelevantFields(panel, panel.values.source);
+        // Only two of the three sources touch the tile server, so the
+        // attribution has to come and go with the choice, not just the switch.
+        refreshAttribution();
+      }
     },
   );
+
+  state.hachurePanel = panel;
+  showRelevantFields(panel, HACHURE.source);
 
   const status = document.createElement("p");
   status.className = "hint";
@@ -515,27 +608,72 @@ function buildHachureSection(body) {
   body.appendChild(status);
 }
 
+/**
+ * Hide the controls the chosen relief source does not use. Three sources with
+ * their own parameters would otherwise leave two thirds of this section inert
+ * at all times, and a slider that does nothing is worse than no slider.
+ */
+function showRelevantFields(panel, source) {
+  const used = {
+    reachPx: source === "shore",
+    moundPx: source === "mounds",
+    steepnessDeg: source !== "terrain",
+  };
+  for (const [name, show] of Object.entries(used)) {
+    const input = panel.el(name);
+    if (input && input.parentElement) input.parentElement.hidden = !show;
+  }
+}
+
+/** True when the live choice of relief source will hit the tile server. */
+function usesDem() {
+  if (!state.hachures || !state.hachures.isEnabled()) return false;
+  const source = state.hachurePanel
+    ? state.hachurePanel.values.source
+    : HACHURE.source;
+  // A supplied summit list is the whole reason the DEM was being fetched for
+  // `mounds`, so with one in hand nothing is requested and nothing is owed.
+  if (source === "mounds" && state.hachures.hasSuppliedPeaks()) return false;
+  return SOURCES_NEEDING_DEM.has(source);
+}
+
 function setHachureStatus(stats) {
   const status = document.getElementById("hachure-status");
   if (!status) return;
+
   if (stats.error) {
     status.textContent = `elevation unavailable: ${stats.error}`;
     return;
   }
   if (stats.pending) {
-    status.textContent = "fetching elevation…";
+    status.textContent = usesDem() ? "fetching elevation…" : "tracing…";
     return;
   }
   if (!stats.strokes) {
-    status.textContent = state.hachures && state.hachures.isEnabled()
-      ? "no ground steep enough in view — zoom in, or lower the flat-ground threshold"
-      : "";
+    if (!state.hachures || !state.hachures.isEnabled()) {
+      status.textContent = "";
+    } else if (stats.source === "shore") {
+      status.textContent = state.rings.length
+        ? "nothing steep enough — raise the invented steepness, or shorten the reach"
+        : "no polygons loaded, so there is no shore to rise from";
+    } else {
+      status.textContent =
+        "no ground steep enough in view — zoom in, or lower the flat-ground threshold";
+    }
     return;
   }
-  const relief = Math.round(stats.relief);
-  status.textContent =
-    `${stats.strokes.toLocaleString()} strokes, ${stats.interval} m rows ` +
-    `(${relief} m of relief), DEM z${stats.demZoom}`;
+
+  const rows = `${stats.strokes.toLocaleString()} strokes, ${stats.interval} m rows`;
+  if (stats.source === "shore") {
+    status.textContent = `${rows} — invented from ${state.rings.length.toLocaleString()} rings, nothing fetched`;
+  } else if (stats.source === "mounds") {
+    status.textContent =
+      `${rows} — ${stats.peaks} hills from ` +
+      (stats.supplied ? "a supplied summit list" : `DEM z${stats.demZoom}`);
+  } else {
+    status.textContent =
+      `${rows} (${Math.round(stats.relief)} m of relief), DEM z${stats.demZoom}`;
+  }
 }
 
 function buildRoseSection(body) {
@@ -952,7 +1090,7 @@ function setBasemap(key) {
  */
 function refreshAttribution() {
   const lines = [...(BASEMAPS[state.basemap].attribution || [])];
-  if (state.hachures && state.hachures.isEnabled()) lines.push(DEM_ATTRIBUTION);
+  if (usesDem()) lines.push(DEM_ATTRIBUTION);
 
   if (state.attribution.control) {
     state.map.removeControl(state.attribution.control);

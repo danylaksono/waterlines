@@ -157,12 +157,34 @@ watch the map itself change through history while the ripples stay put.
 **Hachures** put old-map relief on the land, the way the waterlines put it on
 the sea: short strokes down the fall line, thickening with the slope by
 Lehmann's rule, cut into rows where they cross a contour so a hillside reads as
-engraved rather than shaded. Flat ground stays bare paper. It is the one thing
-here that fetches data from elsewhere — elevation comes from the
-[Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data —
-so it is off until you ask for it, and switching it on adds a line to the map's
-attribution. Terrain wants room to show: below about zoom 7 the DEM is coarser
-than the strokes and there is nothing worth drawing.
+engraved rather than shaded. Flat ground stays bare paper.
+
+The tracer never asks where its surface came from, so there are three to pick
+from:
+
+| Relief from | What it is | Fetches |
+| ----------- | ---------- | ------- |
+| **Terrain** | Measured elevation. Real slopes, real summits. Wants room to show — below about zoom 7 the DEM is coarser than the strokes. | [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data |
+| **Mounds** | Real summits, redrawn as idealised hills with a flat top and a steep waist — relief as it was drawn before contour surveying. Overlapping hills merge into ranges. | the same, only to find the summits |
+| **Shore** | Land rising from your own coastline, invented from the distance inland. Works offline, and on coastlines that were never real. | nothing |
+
+Switching on a source that fetches adds a line to the map's attribution; Shore
+adds none, because it asks for nothing.
+
+Mounds will also take a summit list instead of finding its own, via
+`hachures.setPeaks([{lng, lat, elev}, …])` — at which point it stops touching
+the network too. That is the seam for a precomputed extract, which can apply a
+real prominence test over a whole country instead of a window maximum over one
+screenful. [walkthru.earth's DEM-Terrain](https://source.coop/walkthru-earth/dem-terrain)
+publishes GEDTM-30m as H3 cells with `elev`, `slope`, `aspect`, `tri` and `tpi`
+already computed, which makes the extract close to a one-liner:
+
+```sql
+SELECT h3_cell_to_lng(h3_index) AS lng, h3_cell_to_lat(h3_index) AS lat, elev
+FROM read_parquet('s3://us-west-2.opendata.source.coop/walkthru-earth/dem-terrain/v2/h3/h3_res=8/data.parquet')
+WHERE tpi > 60          -- standing well above its neighbours
+ORDER BY elev DESC LIMIT 500;
+```
 
 ## Good to know
 
