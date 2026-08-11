@@ -32,6 +32,11 @@ import { drawGrain, drawVignette } from '../../shared/js/paper.js';
  * @param {number} [options.scale=1] 1 = exactly what is on screen
  * @param {boolean} [options.grain=true] include the paper texture
  * @param {boolean} [options.vignette=true] include the corner darkening
+ * @param {() => Promise<HTMLCanvasElement|null>} [options.underlay] resolved
+ *   once the map is at its final size, and composited between the basemap and
+ *   the waterlines. The hachures use it: they are a separate canvas rendered
+ *   for a particular view, so at 2x and 3x they have to be rebuilt for the
+ *   grown container rather than scaled up.
  * @param {(ctx:CanvasRenderingContext2D, width:number, height:number, k:number) => void} [options.decorate]
  *   painted last, over everything. `k` is device pixels per CSS pixel of the
  *   *on-screen* map, so a decoration can be placed and sized to match what the
@@ -46,6 +51,7 @@ export async function renderExportCanvas(options) {
     scale = 1,
     grain = true,
     vignette = true,
+    underlay,
     decorate,
     onProgress = () => {},
   } = options;
@@ -62,6 +68,12 @@ export async function renderExportCanvas(options) {
       map.resize();
       overlay.redraw();
       await waitForMapIdle(map);
+    }
+
+    let underlayCanvas = null;
+    if (underlay) {
+      onProgress('tracing hachures for the export size…');
+      underlayCanvas = await underlay();
     }
 
     onProgress('rendering waterlines at full quality…');
@@ -83,6 +95,9 @@ export async function renderExportCanvas(options) {
     const ctx = out.getContext('2d');
 
     ctx.drawImage(mapCanvas, 0, 0, width, height);
+
+    // Between basemap and waterlines, the order they sit in on screen.
+    if (underlayCanvas) ctx.drawImage(underlayCanvas, 0, 0, width, height);
 
     // `snapshot()` rather than the overlay's own canvas: on the distance-field
     // renderer the live canvas is a WebGL drawing buffer, which reads back as

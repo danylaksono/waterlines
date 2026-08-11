@@ -154,6 +154,16 @@ corner, the criss-crossing rhumb lines of a portolan chart, and paper grain. On
 the OpenHistoricalMap basemap a year slider appears over the map, so you can
 watch the map itself change through history while the ripples stay put.
 
+**Hachures** put old-map relief on the land, the way the waterlines put it on
+the sea: short strokes down the fall line, thickening with the slope by
+Lehmann's rule, cut into rows where they cross a contour so a hillside reads as
+engraved rather than shaded. Flat ground stays bare paper. It is the one thing
+here that fetches data from elsewhere — elevation comes from the
+[Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data —
+so it is off until you ask for it, and switching it on adds a line to the map's
+attribution. Terrain wants room to show: below about zoom 7 the DEM is coarser
+than the strokes and there is nothing worth drawing.
+
 ## Good to know
 
 - **No tilt.** Bearing is fine, pitch is not — the overlay is flat by

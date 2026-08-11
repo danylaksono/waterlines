@@ -36,6 +36,8 @@ import { solve } from '../src/adapters/transform.js';
 // same kind of pure geometry and is worth pinning down here rather than in a
 // browser.
 import { latticeCell, windroseNetwork } from '../studio/js/rhumb.js';
+import { rowInterval, snapInterval } from '../studio/js/hachure.js';
+import { demZoomFor } from '../studio/js/dem.js';
 
 // --------------------------------------------------------------------------
 
@@ -684,4 +686,56 @@ test('the lattice repeats whole systems, anchored to the world', () => {
   });
   assert.deepEqual(elsewhere.features[0].geometry.coordinates,
     network.features[0].geometry.coordinates);
+});
+
+// --------------------------------------------------------------------------
+// the studio's hachures
+//
+// Only the scale arithmetic is checkable here: the tracing needs a real DEM
+// and the drawing needs a canvas, both of which belong in `scripts/smoke.mjs`.
+// But the arithmetic is where the picture is won or lost - it decides how long
+// a row comes out on screen, and getting it wrong turns hachures into stipple.
+
+test('a contour interval is rounded to a figure a surveyor would pick', () => {
+  for (const raw of [0.4, 3, 7, 12, 23, 44, 180, 900, 2400]) {
+    const snapped = snapInterval(raw);
+    const mantissa = snapped / Math.pow(10, Math.floor(Math.log10(snapped)));
+    assert.ok(
+      [1, 2, 2.5, 5].includes(+mantissa.toFixed(3)),
+      `${raw} snapped to ${snapped}, whose mantissa is ${mantissa}`
+    );
+  }
+  assert.equal(snapInterval(0.001), 1, 'never finer than a metre');
+});
+
+test('the contour interval holds row length on screen across zooms', () => {
+  // The same hillside at three scales. Row length is `interval / (slope * mpp)`
+  // by construction, so a scale-invariant interval is the whole point: halve
+  // the metres per pixel and the interval must halve too, or the rows on a
+  // zoomed-in sheet collapse into specks.
+  const slope = 0.3;
+  for (const mpp of [130, 65, 32.5]) {
+    const interval = rowInterval(18, mpp, slope);
+    const rowPx = interval / (slope * mpp);
+    // Snapping to 1/2/2.5/5 cannot hit 18 px exactly; within a factor of ~1.6
+    // is as close as a rounded interval can be held.
+    assert.ok(rowPx > 11 && rowPx < 29, `${mpp} m/px gave a ${rowPx.toFixed(1)} px row`);
+  }
+});
+
+test('steeper ground asks for a coarser interval, so its rows stay legible', () => {
+  const gentle = rowInterval(18, 65, 0.1);
+  const steep = rowInterval(18, 65, 0.5);
+  assert.ok(steep > gentle);
+});
+
+test('the DEM level tracks the map, one level per zoom', () => {
+  // A map world is 512 px per tile and a DEM world 256, so a sample every
+  // `step` screen px matches a DEM pixel at `zoom + 1 - log2(step)`.
+  assert.equal(demZoomFor(10, 2), 10);
+  assert.equal(demZoomFor(11, 2), 11);
+  assert.equal(demZoomFor(10, 4), 9);
+  // Clamped to what the dataset actually holds, at both ends.
+  assert.equal(demZoomFor(20, 3), 15);
+  assert.equal(demZoomFor(0, 64), 0);
 });

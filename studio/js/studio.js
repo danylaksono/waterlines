@@ -24,6 +24,8 @@ import {
   readGeoJsonFile,
 } from "./geojson-input.js";
 import { exportPng } from "./export-png.js";
+import { DEM_ATTRIBUTION } from "./dem.js";
+import { DEFAULTS as HACHURE, createHachures } from "./hachure.js";
 import { createRhumb } from "./rhumb.js";
 import { createTimeline, datePluginLoaded } from "./timeline.js";
 import {
@@ -54,6 +56,7 @@ const state = {
   overlay: null,
   compass: null,
   rhumb: null,
+  hachures: null,
   data: null,
   basemap: "paper",
   panel: null,
@@ -134,6 +137,10 @@ async function boot() {
     radiusDeg: RHUMB.radiusDeg,
     opacity: RHUMB.opacity,
   });
+
+  // Also off until asked for, and for a harder reason than the rhumb lines:
+  // it is the one feature here that fetches data from someone else's server.
+  state.hachures = createHachures(state.map, { onStatus: setHachureStatus });
 
   // Built regardless of which basemap starts, so switching to the historical
   // one is instant; `setBasemap` reveals it. Skipped entirely if the CDN
@@ -251,6 +258,7 @@ function buildUi() {
       applyAnimationChange(state.overlay, name, value, values),
   );
 
+  buildHachureSection(section(root, "Hachures", false));
   buildRoseSection(section(root, "Wind rose", false));
   buildRhumbSection(section(root, "Rhumb lines", false));
   buildExportSection(section(root, "Export", true));
@@ -376,6 +384,158 @@ function buildDataSection(body) {
   status.className = "hint";
   status.id = "data-status";
   body.appendChild(status);
+}
+
+/**
+ * Engraved hachures over real terrain.
+ *
+ * The odd one out in this panel: every other control here works on data the
+ * page already has, and this one fetches elevation tiles from AWS. So it is
+ * off by default, it says where the data comes from, and switching it on adds
+ * a line to the map's attribution.
+ */
+function buildHachureSection(body) {
+  buildPanel(
+    body,
+    [
+      {
+        name: "enabled",
+        label: "Draw hachures",
+        type: "checkbox",
+        value: false,
+        hint:
+          "Fetches elevation tiles from AWS Open Data. Terrain needs room to " +
+          "show: below about zoom 7 the DEM is coarser than the strokes and " +
+          "there is little to see.",
+      },
+      {
+        name: "spacing",
+        label: "Spacing",
+        type: "range",
+        min: 4,
+        max: 16,
+        step: 0.5,
+        value: HACHURE.spacing,
+        format: (v) => `${v} px`,
+        hint:
+          "Constant, by Lehmann’s rule — it is the stroke *weight* that carries " +
+          "the slope, never the gap. Tighter spacing means more strokes and a " +
+          "slower rebuild.",
+      },
+      {
+        name: "weight",
+        label: "Ink",
+        type: "range",
+        min: 0.4,
+        max: 1.8,
+        step: 0.05,
+        value: HACHURE.weight,
+        format: (v) => `${Math.round(v * 100)}%`,
+      },
+      {
+        name: "minSlopeDeg",
+        label: "Flat ground below",
+        type: "range",
+        min: 1,
+        max: 20,
+        step: 1,
+        value: HACHURE.minSlopeDeg,
+        format: (v) => `${v}°`,
+        hint: "Gentler than this stays bare paper, as it would on an engraved sheet.",
+      },
+      {
+        name: "maxSlopeDeg",
+        label: "Full weight at",
+        type: "range",
+        min: 10,
+        max: 60,
+        step: 1,
+        value: HACHURE.maxSlopeDeg,
+        format: (v) => `${v}°`,
+      },
+      {
+        name: "rowLength",
+        label: "Row length",
+        type: "range",
+        min: 6,
+        max: 40,
+        step: 1,
+        value: HACHURE.rowLength,
+        format: (v) => `${v} px`,
+        hint:
+          "Strokes are cut where they cross a contour, which is what lines the " +
+          "rows up across a hillside. This asks for a row length on screen and " +
+          "works back to the contour interval that gives it — rounded to a " +
+          "figure a surveyor would have picked, and shown below.",
+      },
+      {
+        name: "generalise",
+        label: "Generalise",
+        type: "range",
+        min: 0,
+        max: 6,
+        step: 1,
+        value: HACHURE.generalise,
+        format: (v) => (v ? `${v * 3} px` : "none"),
+        hint:
+          "Smooths the surface before tracing. At zero the strokes follow every " +
+          "artefact in the DEM and go frizzy; the engraved look is a generalised " +
+          "surface.",
+      },
+      {
+        name: "ink",
+        label: "Colour",
+        type: "color",
+        value: HACHURE.ink,
+      },
+      {
+        name: "opacity",
+        label: "Opacity",
+        type: "range",
+        min: 0.2,
+        max: 1,
+        step: 0.05,
+        value: HACHURE.opacity,
+        format: (v) => `${Math.round(v * 100)}%`,
+      },
+    ],
+    (name, value) => {
+      if (name === "enabled") {
+        state.hachures.setEnabled(value);
+        refreshAttribution();
+      } else {
+        state.hachures.setOptions({ [name]: value });
+      }
+    },
+  );
+
+  const status = document.createElement("p");
+  status.className = "hint";
+  status.id = "hachure-status";
+  body.appendChild(status);
+}
+
+function setHachureStatus(stats) {
+  const status = document.getElementById("hachure-status");
+  if (!status) return;
+  if (stats.error) {
+    status.textContent = `elevation unavailable: ${stats.error}`;
+    return;
+  }
+  if (stats.pending) {
+    status.textContent = "fetching elevation…";
+    return;
+  }
+  if (!stats.strokes) {
+    status.textContent = state.hachures && state.hachures.isEnabled()
+      ? "no ground steep enough in view — zoom in, or lower the flat-ground threshold"
+      : "";
+    return;
+  }
+  const relief = Math.round(stats.relief);
+  status.textContent =
+    `${stats.strokes.toLocaleString()} strokes, ${stats.interval} m rows ` +
+    `(${relief} m of relief), DEM z${stats.demZoom}`;
 }
 
 function buildRoseSection(body) {
@@ -689,6 +849,12 @@ async function savePng(button) {
       scale: Number(state.exportValues.scale),
       grain: state.exportValues.grain,
       vignette: state.exportValues.vignette,
+      // Rebuilt rather than upscaled: at 2x and 3x the map is re-rendered at
+      // the larger size, and hachures traced for the old one would come out
+      // as soft, over-thick strokes.
+      underlay: state.hachures.isEnabled()
+        ? () => state.hachures.render()
+        : undefined,
       decorate: state.exportValues.compass ? paintCompass : undefined,
       onProgress: (message) => {
         status.textContent = message;
@@ -751,6 +917,7 @@ function setBasemap(key) {
     state.attribution,
   );
   setBasemapNote(key);
+  refreshAttribution();
 
   state.applying = true;
   state.panel.set("color", basemap.ink);
@@ -775,6 +942,26 @@ function setBasemap(key) {
     // Date filters live on the style, so a style swap discards them.
     if (dated && state.timeline) state.timeline.reapply();
   });
+}
+
+/**
+ * Rebuild the attribution control from the basemap's lines plus anything an
+ * overlay has switched on. MapLibre takes custom attribution at construction
+ * only, so "changing" it means replacing the control - which is what
+ * `applyBasemap` does too, and why this runs after it rather than instead.
+ */
+function refreshAttribution() {
+  const lines = [...(BASEMAPS[state.basemap].attribution || [])];
+  if (state.hachures && state.hachures.isEnabled()) lines.push(DEM_ATTRIBUTION);
+
+  if (state.attribution.control) {
+    state.map.removeControl(state.attribution.control);
+  }
+  state.attribution.control = new maplibregl.AttributionControl({
+    compact: true,
+    customAttribution: lines,
+  });
+  state.map.addControl(state.attribution.control, "bottom-right");
 }
 
 function setBasemapNote(key) {
