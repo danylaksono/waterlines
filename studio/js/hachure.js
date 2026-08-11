@@ -27,9 +27,10 @@
  *     This is the step that makes it read as engraving rather than as noise:
  *     every stroke on a hillside breaks at the same elevations, so the rows
  *     line up across the slope without any explicit alignment pass.
- *  5. **Draw** - each stroke as a filled wedge, thin at the top and full width
- *     at the foot. All of them go into one path and one `fill()`, so twenty
- *     thousand strokes cost one rasterisation rather than twenty thousand.
+ *  5. **Draw** - each stroke as a filled wedge, heaviest where it leaves the
+ *     contour above and tapering towards the one below. All of them go into one
+ *     path and one `fill()`, so twenty thousand strokes cost one rasterisation
+ *     rather than twenty thousand.
  *
  * Like the waterlines this is a canvas over the map rather than a MapLibre
  * layer, and like them it is rebuilt when the view settles and merely
@@ -41,7 +42,7 @@ import { blitTransform } from '../../src/render/RasterCache.js';
 import { affineFromMap } from '../../src/adapters/transform.js';
 import { latToMercatorY, lngToMercatorX } from '../../src/core/mercator.js';
 import { sampleHeightField } from './dem.js';
-import { findPeaks, moundField, shoreField } from './relief.js';
+import { findPeaks, moundField } from './relief.js';
 
 /** Margin around the viewport, CSS px: how far the view can pan before a rebuild. */
 const PAD = 128;
@@ -53,22 +54,35 @@ const STEP = 3;
 const SETTLE_MS = 140;
 
 export const DEFAULTS = {
-  /** `terrain` (measured), `mounds` (real summits, drawn hills), `shore` (no data). */
+  /** `terrain` (measured elevation) or `mounds` (real summits, drawn hills). */
   source: 'terrain',
-  spacing: 7,
-  minSlopeDeg: 4,
-  maxSlopeDeg: 20,
+  // Finer than a first guess suggests. Lehmann's rule ties stroke width to the
+  // spacing, so halving the spacing halves the strokes too: the texture gets
+  // finer without getting lighter, which is the difference between hachures
+  // that read as engraving and hachures that read as dashes.
+  spacing: 5,
+  // Lehmann's own limits: below 5 degrees a sheet is left bare, and 45 is where
+  // it goes solid. The obvious mistake - and the one made here first - is to put
+  // the ceiling somewhere near the steepest ground actually in view, which
+  // doubles the ink on every hillside and makes the relief shout.
+  minSlopeDeg: 5,
+  maxSlopeDeg: 45,
   weight: 1,
-  rowLength: 18,
+  // About 4 mm at screen resolution, which is the longest hachure Lehmann's
+  // instructions allow.
+  rowLength: 13,
   generalise: 2,
   ink: '#4a3a26',
   opacity: 0.85,
-  /** shore: how far inland the land keeps rising, CSS px. */
-  reachPx: 90,
-  /** shore and mounds: the slope the invented surface is built to. */
+  /** mounds: the slope the drawn hills are built to. */
   steepnessDeg: 22,
   /** mounds: base radius of the largest hill, CSS px. */
   moundPx: 95,
+  /**
+   * terrain only: raise heights as the map zooms out, so relief keeps reading.
+   * Off gives true slopes, and a small-scale sheet that is nearly bare.
+   */
+  exaggerate: true,
 };
 
 /** Which sources need elevation tiles, and therefore the network. */
@@ -183,6 +197,52 @@ export function snapInterval(raw) {
   const mantissa = raw / decade;
   const snapped = mantissa <= 1.5 ? 1 : mantissa <= 3 ? 2 : mantissa <= 4 ? 2.5 : 5;
   return Math.max(1, snapped * decade);
+}
+
+/**
+ * The sample spacing at which measured terrain is drawn at its true height.
+ * About 60 m, which is the ground a sample covers around zoom 12 - the scale
+ * the tracer's defaults were tuned at.
+ */
+export const TRUE_SCALE_GROUND_STEP = 60;
+
+/**
+ * How fast measured slope falls away as the baseline it is measured over grows.
+ *
+ * Not a guess. Sampling one volcano at eight zooms and taking the 75th
+ * percentile slope over land each time gives 30.2 degrees at 28 m per sample,
+ * 12.7 at 113 m, 7.8 at 454 m and 1.9 at 3.6 km - a factor of about 1.5 for
+ * every halving of the baseline, i.e. `slope ~ L^-0.585`. That is the fractal
+ * signature of real ground, and it is why terrain looks wrong zoomed out rather
+ * than merely coarse.
+ */
+export const RELIEF_FALLOFF = 0.585;
+
+/**
+ * How much to multiply measured heights by, to hold relief across zooms.
+ *
+ * The problem this solves is not a loss of fidelity, which is the intuitive
+ * reading and the wrong one. Slope is a ratio measured over a baseline, and
+ * zooming out grows the baseline: at 1.8 km per sample the flanks of a 3,700 m
+ * volcano genuinely average three degrees. Nothing is being thrown away - the
+ * gentle number is correct - but a hachure map drawn from it is bare, because
+ * three degrees *is* flat ground and the tracer rightly refuses to ink it.
+ *
+ * So the answer is not to recover detail but to exaggerate, which is exactly
+ * what an engraver did on a small-scale sheet and what a physical relief model
+ * still does. Undoing the falloff measured above holds the 75th-percentile
+ * slope near 20 degrees from zoom 6 to zoom 13, so the ink on a hillside stops
+ * depending on how far out the map is.
+ *
+ * Applies to measured terrain only. The invented surfaces in `relief.js` are
+ * built to a stated steepness through the map scale already, so they are
+ * scale-invariant by construction and exaggerating them would break that.
+ *
+ * @param {number} groundStep metres per sample
+ * @returns {number} 1 at the true-scale spacing, more when zoomed out
+ */
+export function reliefExaggeration(groundStep) {
+  return Math.pow(Math.max(1, groundStep) / TRUE_SCALE_GROUND_STEP, RELIEF_FALLOFF);
 }
 
 /**
@@ -516,8 +576,10 @@ function cut(line, interval, dsep, traceStep, emit) {
     // entirely and the hillside that most needs ink turns to dots.
     const trimmed = trim(piece, Math.min(dsep * 0.35, length * 0.22), traceStep);
 
-    // Whatever survives, a stroke shorter than the spacing is a speck.
-    if (trimmed.length >= 6 && (trimmed.length / 3 - 1) * traceStep >= dsep * 0.6) {
+    // Lehmann again: a hachure is never shorter than the gap to its neighbour.
+    // Anything below that reads as a speck rather than a stroke, and a field of
+    // specks is most of what makes generated hachures look unlike drawn ones.
+    if (trimmed.length >= 6 && (trimmed.length / 3 - 1) * traceStep >= dsep) {
       emit(trimmed);
     }
   };
@@ -569,17 +631,22 @@ function shape(piece, ctx) {
     points[n * 2 + 1] = y;
 
     const s = bilinear(slope, cols, rows, x, y);
-    // Ink-to-white, straight off Lehmann, capped at both ends: at the top
-    // because rows that touch lose the fall-line direction that is the whole
-    // point of hachures over shading, and at the bottom because a stroke
-    // thinner than a hair vanishes under antialiasing anyway. The upper cap
-    // has to be generous - hold it much below three-quarters and steep ground
-    // never goes dark, so the relief reads as texture rather than as terrain.
-    const ratio = clamp(s / maxSlope, 0.1, 0.78);
-    // A mild wedge, not a spike. Rows are short - ten pixels or so - and a
-    // strong taper spends most of that length on a hairline, which costs the
-    // slope reading the width was carrying in the first place.
-    const taper = 0.62 + 0.38 * (n / Math.max(1, count - 1));
+    // Ink-to-white, straight off Lehmann: the proportion of black is the slope
+    // as a fraction of 45 degrees, so 45 is solid and a gentle slope is mostly
+    // paper. Held just short of solid at the top so the steepest faces keep a
+    // trace of fall-line direction rather than blocking in, and allowed to go
+    // very fine at the bottom, where the only strokes are the tails that ran on
+    // past the seeding threshold.
+    const ratio = clamp(s / maxSlope, 0.04, 0.9);
+    // Heaviest where the stroke leaves the contour above, tapering as it falls
+    // towards the one below. Two caveats worth being straight about: the
+    // sources consulted describe Lehmann's thicknesses but not which end of a
+    // hachure carries them, and the difference on screen is subtle at any
+    // spacing you would actually use. The reason to prefer it is structural
+    // rather than historical - putting the weight at the top of every row
+    // darkens the same elevation across a whole hillside, which reinforces the
+    // contour banding the rows are cut on. Flip the sign to reverse it.
+    const taper = 1 - 0.55 * (n / Math.max(1, count - 1));
     widths[n] = dsep * step * ratio * weight * taper;
   }
 
@@ -706,8 +773,6 @@ export function createHachures(map, options = {}) {
   let timer = null;
   let stats = { strokes: 0, tiles: 0, missing: 0, demZoom: 0, interval: 0, pending: false };
   let onStatus = options.onStatus || (() => {});
-  /** Coastline rings for the `shore` source; the studio owns the parsed data. */
-  let getRings = options.getRings || (() => []);
   /** Supplied summits for `mounds`, or null to extract them from the DEM. */
   let peakList = options.peaks || null;
 
@@ -743,21 +808,37 @@ export function createHachures(map, options = {}) {
   }
 
   /**
+   * Raise a measured surface so its relief reads at the scale it is drawn at.
+   *
+   * The true relief is measured first and carried alongside, so the status line
+   * can report the ground rather than the drawing - the whole point of an
+   * exaggeration is that it is stated, not hidden.
+   *
+   * Scaling the heights rather than lowering the slope thresholds also keeps
+   * the rows right for free: `rowInterval` is linear in slope, so the interval
+   * grows by the same factor and the row length on screen does not move.
+   *
+   * @param {import('./dem.js').HeightField} field
+   * @param {boolean} on
+   */
+  function exaggerate(field, on) {
+    let relief = 0;
+    for (const h of field.height) if (h > relief) relief = h;
+    if (!on) return { ...field, trueRelief: relief, exaggeration: 1 };
+
+    const factor = reliefExaggeration(field.groundStep);
+    const height = new Float32Array(field.height.length);
+    for (let k = 0; k < height.length; k++) height[k] = field.height[k] * factor;
+    return { ...field, height, trueRelief: relief, exaggeration: factor };
+  }
+
+  /**
    * Produce the surface the tracer will engrave, from whichever source is
    * selected. Only `terrain` and an unsupplied `mounds` need the network.
    *
    * @returns {Promise<import('./dem.js').HeightField|null>} null if superseded
    */
   async function buildField(spec, mine) {
-    if (state.source === 'shore') {
-      return shoreField({
-        ...spec,
-        rings: getRings(),
-        reachPx: state.reachPx,
-        steepnessDeg: state.steepnessDeg,
-      });
-    }
-
     const mound = (peaks, extra) => ({
       ...moundField({
         ...spec,
@@ -777,7 +858,7 @@ export function createHachures(map, options = {}) {
       cancelled: () => mine !== token,
     });
     if (!dem || mine !== token) return null;
-    if (state.source === 'terrain') return dem;
+    if (state.source === 'terrain') return exaggerate(dem, state.exaggerate);
 
     // Summits from the measured surface, then the surface thrown away.
     //
@@ -859,7 +940,9 @@ export function createHachures(map, options = {}) {
       peaks: field.peaks || 0,
       supplied: !!field.supplied,
       interval: built.interval,
-      relief: built.relief,
+      // The ground, not the drawing: `built.relief` is the exaggerated figure.
+      relief: field.trueRelief ?? built.relief,
+      exaggeration: field.exaggeration || 1,
       pending: false,
     };
     onStatus(stats);
@@ -975,13 +1058,6 @@ export function createHachures(map, options = {}) {
     setPeaks(peaks) {
       peakList = peaks && peaks.length ? peaks : null;
       if (state.enabled && state.source === 'mounds') schedule();
-      return handle;
-    },
-
-    /** @param {() => import('../../src/core/rings.js').Ring[]} fn */
-    setRingSource(fn) {
-      getRings = fn;
-      if (state.enabled && state.source === 'shore') schedule();
       return handle;
     },
 

@@ -30,7 +30,6 @@ import {
   SOURCES_NEEDING_DEM,
   createHachures,
 } from "./hachure.js";
-import { geojsonToRings } from "../../src/core/rings.js";
 import { createRhumb } from "./rhumb.js";
 import { createTimeline, datePluginLoaded } from "./timeline.js";
 import {
@@ -63,9 +62,6 @@ const state = {
   rhumb: null,
   hachures: null,
   hachurePanel: null,
-  // Parsed once per dataset and handed to the `shore` relief source, which
-  // rasterises them on every rebuild.
-  rings: [],
   data: null,
   basemap: "paper",
   panel: null,
@@ -149,10 +145,7 @@ async function boot() {
 
   // Also off until asked for, and for a harder reason than the rhumb lines:
   // it is the one feature here that fetches data from someone else's server.
-  state.hachures = createHachures(state.map, {
-    onStatus: setHachureStatus,
-    getRings: () => state.rings,
-  });
+  state.hachures = createHachures(state.map, { onStatus: setHachureStatus });
 
   // Built regardless of which basemap starts, so switching to the historical
   // one is instant; `setBasemap` reveals it. Skipped entirely if the CDN
@@ -198,12 +191,6 @@ async function boot() {
 function useData(data, options = {}) {
   state.data = data;
   state.overlay.setData(data.geojson);
-
-  // The `shore` relief source needs the same rings the overlay does. Parsed
-  // here rather than per rebuild: it is the only part of a hachure refresh that
-  // depends on the data instead of the view.
-  state.rings = geojsonToRings(data.geojson);
-  if (state.hachures) state.hachures.setRingSource(() => state.rings);
 
   const source = state.map.getSource("land");
   if (source) source.setData(data.geojson);
@@ -438,33 +425,24 @@ function buildHachureSection(body) {
             label: "Mounds",
             title: "Real summits, redrawn as idealised hills",
           },
-          {
-            value: "shore",
-            label: "Shore",
-            title: "Invented relief from your own coastline — no data fetched",
-          },
         ],
         hint:
           "Terrain is the survey: real slopes, and it needs room to show — " +
           "below about zoom 7 the DEM is coarser than the strokes. Mounds keeps " +
           "the summits and throws the shape away, the way relief was drawn " +
-          "before contour surveying. Shore invents the lot from the polygons " +
-          "already loaded, fetches nothing, and works on coastlines that were " +
-          "never real.",
+          "before contour surveying.",
       },
       {
-        name: "reachPx",
-        label: "Reach inland",
-        type: "range",
-        min: 20,
-        max: 260,
-        step: 5,
-        value: HACHURE.reachPx,
-        format: (v) => `${v} px`,
+        name: "exaggerate",
+        label: "Hold relief across zooms",
+        type: "checkbox",
+        value: HACHURE.exaggerate,
         hint:
-          "Shore only. How far in the land keeps rising — the mirror of the " +
-          "waterlines’ reach from shore, which is the same distance measured " +
-          "the other way.",
+          "Terrain only. Slope is measured over a baseline, and zooming out " +
+          "grows it — at 1.8 km per sample the flanks of a 3,700 m volcano " +
+          "really do average 3°, which is flat ground, so the sheet comes out " +
+          "bare. This raises the heights to undo that, as an engraver did on a " +
+          "small-scale sheet. Off gives true slopes.",
       },
       {
         name: "moundPx",
@@ -489,7 +467,7 @@ function buildHachureSection(body) {
         value: HACHURE.steepnessDeg,
         format: (v) => `${v}°`,
         hint:
-          "Shore and mounds. The slope the made-up surface is built to, which " +
+          "Mounds only. The slope the drawn hills are built to, which " +
           "sets how heavy its hachures come out. It is scaled through the map " +
           "scale, so an invented hillside looks the same at every zoom.",
       },
@@ -497,15 +475,16 @@ function buildHachureSection(body) {
         name: "spacing",
         label: "Spacing",
         type: "range",
-        min: 4,
+        min: 1.5,
         max: 16,
         step: 0.5,
         value: HACHURE.spacing,
         format: (v) => `${v} px`,
         hint:
           "Constant, by Lehmann’s rule — it is the stroke *weight* that carries " +
-          "the slope, never the gap. Tighter spacing means more strokes and a " +
-          "slower rebuild.",
+          "the slope, never the gap. Stroke width is tied to this, so going " +
+          "finer makes the texture finer rather than lighter; use Ink for " +
+          "lighter. Tighter spacing means more strokes and a slower rebuild.",
       },
       {
         name: "weight",
@@ -526,17 +505,24 @@ function buildHachureSection(body) {
         step: 1,
         value: HACHURE.minSlopeDeg,
         format: (v) => `${v}°`,
-        hint: "Gentler than this stays bare paper, as it would on an engraved sheet.",
+        hint:
+          "Gentler than this stays bare paper. Lehmann left everything under " +
+          "5° blank, which is most of what gives an engraved sheet its white.",
       },
       {
         name: "maxSlopeDeg",
-        label: "Full weight at",
+        label: "Solid black at",
         type: "range",
         min: 10,
         max: 60,
         step: 1,
         value: HACHURE.maxSlopeDeg,
         format: (v) => `${v}°`,
+        hint:
+          "The slope where the ink fills the gap completely; everything gentler " +
+          "gets that fraction of black. Lehmann put it at 45°. Bringing it down " +
+          "towards the steepest ground actually in view is the quickest way to " +
+          "make relief overpower the rest of the map.",
       },
       {
         name: "rowLength",
@@ -551,7 +537,8 @@ function buildHachureSection(body) {
           "Strokes are cut where they cross a contour, which is what lines the " +
           "rows up across a hillside. This asks for a row length on screen and " +
           "works back to the contour interval that gives it — rounded to a " +
-          "figure a surveyor would have picked, and shown below.",
+          "figure a surveyor would have picked, and shown below. Lehmann’s " +
+          "limits were 4 mm at the long end and the spacing at the short.",
       },
       {
         name: "generalise",
@@ -615,13 +602,17 @@ function buildHachureSection(body) {
  */
 function showRelevantFields(panel, source) {
   const used = {
-    reachPx: source === "shore",
+    exaggerate: source === "terrain",
     moundPx: source === "mounds",
     steepnessDeg: source !== "terrain",
   };
   for (const [name, show] of Object.entries(used)) {
     const input = panel.el(name);
-    if (input && input.parentElement) input.parentElement.hidden = !show;
+    // `closest`, not `parentElement`: a checkbox is wrapped in its own label,
+    // so its parent is that label rather than the row. Hiding the parent would
+    // take the control away and leave its hint paragraph behind, stranded.
+    const row = input && input.closest(".field");
+    if (row) row.hidden = !show;
   }
 }
 
@@ -652,10 +643,6 @@ function setHachureStatus(stats) {
   if (!stats.strokes) {
     if (!state.hachures || !state.hachures.isEnabled()) {
       status.textContent = "";
-    } else if (stats.source === "shore") {
-      status.textContent = state.rings.length
-        ? "nothing steep enough — raise the invented steepness, or shorten the reach"
-        : "no polygons loaded, so there is no shore to rise from";
     } else {
       status.textContent =
         "no ground steep enough in view — zoom in, or lower the flat-ground threshold";
@@ -664,15 +651,17 @@ function setHachureStatus(stats) {
   }
 
   const rows = `${stats.strokes.toLocaleString()} strokes, ${stats.interval} m rows`;
-  if (stats.source === "shore") {
-    status.textContent = `${rows} — invented from ${state.rings.length.toLocaleString()} rings, nothing fetched`;
-  } else if (stats.source === "mounds") {
+  if (stats.source === "mounds") {
     status.textContent =
       `${rows} — ${stats.peaks} hills from ` +
       (stats.supplied ? "a supplied summit list" : `DEM z${stats.demZoom}`);
   } else {
+    // The exaggeration is stated rather than folded in silently: the relief
+    // quoted is the ground's, and the factor says how much the drawing lifts it.
+    const lift =
+      stats.exaggeration > 1.05 ? `, drawn ×${stats.exaggeration.toFixed(1)}` : "";
     status.textContent =
-      `${rows} (${Math.round(stats.relief)} m of relief), DEM z${stats.demZoom}`;
+      `${rows} (${Math.round(stats.relief)} m of relief${lift}), DEM z${stats.demZoom}`;
   }
 }
 

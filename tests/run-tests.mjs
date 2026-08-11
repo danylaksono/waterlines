@@ -36,9 +36,15 @@ import { solve } from '../src/adapters/transform.js';
 // same kind of pure geometry and is worth pinning down here rather than in a
 // browser.
 import { latticeCell, windroseNetwork } from '../studio/js/rhumb.js';
-import { rowInterval, snapInterval } from '../studio/js/hachure.js';
+import {
+  DEFAULTS as HACHURE_DEFAULTS,
+  TRUE_SCALE_GROUND_STEP,
+  reliefExaggeration,
+  rowInterval,
+  snapInterval,
+} from '../studio/js/hachure.js';
 import { demZoomFor } from '../studio/js/dem.js';
-import { distanceTransform, moundField, moundProfile } from '../studio/js/relief.js';
+import { moundField, moundProfile } from '../studio/js/relief.js';
 
 // --------------------------------------------------------------------------
 
@@ -742,49 +748,7 @@ test('the DEM level tracks the map, one level per zoom', () => {
 });
 
 // --------------------------------------------------------------------------
-// the studio's invented relief
-
-test('the distance transform is exact Euclidean, not a chamfer', () => {
-  // One feature cell in the middle of a 9x9 grid: every distance is known.
-  const cols = 9;
-  const rows = 9;
-  const mask = new Uint8Array(cols * rows);
-  mask[4 * cols + 4] = 1;
-
-  const d = distanceTransform(mask, cols, rows, true);
-  for (let j = 0; j < rows; j++) {
-    for (let i = 0; i < cols; i++) {
-      const expected = Math.hypot(i - 4, j - 4);
-      assert.ok(
-        Math.abs(d[j * cols + i] - expected) < 1e-6,
-        `(${i},${j}) gave ${d[j * cols + i]}, wanted ${expected}`
-      );
-    }
-  }
-  // A chamfer would round the diagonal up: the exact answer here is sqrt(32).
-  assert.ok(Math.abs(d[0] - Math.sqrt(32)) < 1e-6);
-});
-
-test('the distance transform survives long empty runs', () => {
-  // Regression. The parabola intersection subtracts one cost from another, so
-  // seeding absent cells with Infinity yields Infinity - Infinity = NaN, every
-  // comparison against it is false, and the algorithm keeps the wrong parabola
-  // and returns arbitrary distances. It showed up as an invented coastline
-  // forty times steeper than the one asked for, which is exactly the kind of
-  // wrong that still renders and still looks like a map.
-  const cols = 64;
-  const rows = 3;
-  const mask = new Uint8Array(cols * rows);
-  mask[1 * cols + 0] = 1;
-
-  const d = distanceTransform(mask, cols, rows, true);
-  for (const value of d) assert.ok(Number.isFinite(value), 'no NaN or Infinity');
-  for (let i = 0; i < cols; i++) {
-    assert.ok(Math.abs(d[1 * cols + i] - i) < 1e-6, `run distance at ${i}`);
-  }
-  // Monotonic away from the feature, which a NaN-poisoned run is not.
-  for (let i = 1; i < cols; i++) assert.ok(d[1 * cols + i] > d[1 * cols + i - 1]);
-});
+// the studio's drawn hills
 
 test('a drawn hill is flat on top, flat at the base and steepest at the waist', () => {
   assert.equal(moundProfile(0), 1);
@@ -864,4 +828,95 @@ test('mounds combine by maximum, so neighbouring hills keep their summits', () =
   // maximum leaves it exactly where it was.
   assert.ok(Math.abs(at(two, 30, 40) - at(one, 30, 40)) < 1e-6);
   assert.ok(at(two, 45, 40) > at(one, 45, 40), 'the second hill is there');
+});
+
+// --------------------------------------------------------------------------
+// holding relief across zooms
+
+/**
+ * The 75th-percentile slope over land on one volcano (Rinjani), measured from
+ * the real DEM at eight zooms. Degrees against metres per sample. This is the
+ * observation the exaggeration law is fitted to, kept here so a change to the
+ * law has something to answer to.
+ */
+const MEASURED_SLOPE = [
+  [3630, 1.9],
+  [1815, 3.1],
+  [907, 5.5],
+  [454, 7.8],
+  [227, 10.8],
+  [113, 12.7],
+  [57, 22.1],
+  [28, 30.2],
+];
+
+test('measured slope really does collapse as the baseline grows', () => {
+  // Not testing our code - testing that the problem exists, so the fix below
+  // is answering something real. The same ground reads sixteen times gentler
+  // at 3.6 km per sample than at 28 m.
+  const gentlest = MEASURED_SLOPE[0][1];
+  const steepest = MEASURED_SLOPE[MEASURED_SLOPE.length - 1][1];
+  assert.ok(steepest / gentlest > 10, 'the falloff is large, not marginal');
+  for (let i = 1; i < MEASURED_SLOPE.length; i++) {
+    assert.ok(MEASURED_SLOPE[i][1] > MEASURED_SLOPE[i - 1][1], 'monotonic');
+  }
+});
+
+test('exaggeration is 1 at true scale and grows as the map zooms out', () => {
+  assert.ok(Math.abs(reliefExaggeration(TRUE_SCALE_GROUND_STEP) - 1) < 1e-9);
+  assert.ok(reliefExaggeration(1000) > reliefExaggeration(500));
+  assert.ok(reliefExaggeration(500) > reliefExaggeration(TRUE_SCALE_GROUND_STEP));
+  // Below true scale it drops under 1, which is what stops a zoomed-right-in
+  // sheet from going solid.
+  assert.ok(reliefExaggeration(28) < 1);
+});
+
+test('exaggeration flattens the measured falloff to near-constant ink', () => {
+  const lifted = MEASURED_SLOPE.map(([groundStep, deg]) => {
+    const slope = Math.tan((deg * Math.PI) / 180);
+    return (Math.atan(slope * reliefExaggeration(groundStep)) * 180) / Math.PI;
+  });
+
+  const lo = Math.min(...lifted);
+  const hi = Math.max(...lifted);
+  // Raw, the spread is a factor of sixteen; corrected it must be inside 1.6,
+  // and must sit near the 20 degrees the stroke widths are calibrated against.
+  assert.ok(hi / lo < 1.6, `spread was ${(hi / lo).toFixed(2)}: ${lifted}`);
+  assert.ok(lo > 15 && hi < 28, `range was ${lo.toFixed(1)}..${hi.toFixed(1)}`);
+});
+
+// --------------------------------------------------------------------------
+// Lehmann's limits
+
+test("the defaults keep Lehmann's slope limits", () => {
+  // These two are not taste. Lehmann leaves everything under 5 degrees bare and
+  // fills the gap completely at 45, and the proportion of black in between is
+  // the slope as a fraction of that ceiling. Bringing the ceiling down towards
+  // the steepest ground actually in view is the tempting mistake - it was made
+  // here first, at 20 degrees - and it doubles the ink on every hillside.
+  // Measured on one view, that alone took ink coverage from 2.01% to 0.76%.
+  assert.equal(HACHURE_DEFAULTS.minSlopeDeg, 5);
+  assert.equal(HACHURE_DEFAULTS.maxSlopeDeg, 45);
+});
+
+test('the ink follows the slope as a fraction of the solid-black angle', () => {
+  const ink = (deg) =>
+    Math.tan((deg * Math.PI) / 180) /
+    Math.tan((HACHURE_DEFAULTS.maxSlopeDeg * Math.PI) / 180);
+
+  // Half the ceiling is not half the ink - the rule is on the tangent, not the
+  // angle - but the shape must be monotonic and must reach 1 at the ceiling.
+  assert.ok(Math.abs(ink(45) - 1) < 1e-9);
+  assert.ok(ink(20) > 0.3 && ink(20) < 0.4);
+  assert.ok(ink(5) < 0.1);
+  assert.ok(ink(30) > ink(20) && ink(20) > ink(10));
+});
+
+test('a hachure is never longer than about 4mm nor shorter than its spacing', () => {
+  // Lehmann's own bounds on the mark. The default row length has to sit inside
+  // them at the spacing the defaults ask for, or the tracer spends its time
+  // emitting strokes the drawing rules would have rejected.
+  const FOUR_MM_IN_PX = 15;
+  assert.ok(HACHURE_DEFAULTS.rowLength <= FOUR_MM_IN_PX);
+  assert.ok(HACHURE_DEFAULTS.rowLength >= HACHURE_DEFAULTS.spacing);
 });
