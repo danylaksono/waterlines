@@ -224,6 +224,12 @@ mathematics, the measurements, the things that did not work, and why the code
 is shaped the way it is. I had some fun with trying out different ways to make this
 work so this is where I put the notes.
 
+[`docs/hachures.md`](docs/hachures.md) does the same for the hachured relief:
+Lehmann's 1799 rule and which of its numbers turn out to be load-bearing, how
+the strokes are placed and cut into rows, and the one genuinely awkward part —
+that slope is measured over a baseline, so the same mountain reads sixteen times
+gentler when you zoom out, and what to do about it.
+
 [`docs/delimitation.html`](docs/delimitation.html) is a side quest that turned
 into a finding. The seam that forms between two islands' waterlines is the same
 geometric object UNCLOS calls a median line, and the ripple family is the
