@@ -36,6 +36,15 @@ import { solve } from '../src/adapters/transform.js';
 // same kind of pure geometry and is worth pinning down here rather than in a
 // browser.
 import { latticeCell, windroseNetwork } from '../studio/js/rhumb.js';
+import {
+  DEFAULTS as HACHURE_DEFAULTS,
+  TRUE_SCALE_GROUND_STEP,
+  reliefExaggeration,
+  rowInterval,
+  snapInterval,
+} from '../studio/js/hachure.js';
+import { demZoomFor } from '../studio/js/dem.js';
+import { moundField, moundProfile } from '../studio/js/relief.js';
 
 // --------------------------------------------------------------------------
 
@@ -684,4 +693,230 @@ test('the lattice repeats whole systems, anchored to the world', () => {
   });
   assert.deepEqual(elsewhere.features[0].geometry.coordinates,
     network.features[0].geometry.coordinates);
+});
+
+// --------------------------------------------------------------------------
+// the studio's hachures
+//
+// Only the scale arithmetic is checkable here: the tracing needs a real DEM
+// and the drawing needs a canvas, both of which belong in `scripts/smoke.mjs`.
+// But the arithmetic is where the picture is won or lost - it decides how long
+// a row comes out on screen, and getting it wrong turns hachures into stipple.
+
+test('a contour interval is rounded to a figure a surveyor would pick', () => {
+  for (const raw of [0.4, 3, 7, 12, 23, 44, 180, 900, 2400]) {
+    const snapped = snapInterval(raw);
+    const mantissa = snapped / Math.pow(10, Math.floor(Math.log10(snapped)));
+    assert.ok(
+      [1, 2, 2.5, 5].includes(+mantissa.toFixed(3)),
+      `${raw} snapped to ${snapped}, whose mantissa is ${mantissa}`
+    );
+  }
+  assert.equal(snapInterval(0.001), 1, 'never finer than a metre');
+});
+
+test('the contour interval holds row length on screen across zooms', () => {
+  // The same hillside at three scales. Row length is `interval / (slope * mpp)`
+  // by construction, so a scale-invariant interval is the whole point: halve
+  // the metres per pixel and the interval must halve too, or the rows on a
+  // zoomed-in sheet collapse into specks.
+  const slope = 0.3;
+  for (const mpp of [130, 65, 32.5]) {
+    const interval = rowInterval(18, mpp, slope);
+    const rowPx = interval / (slope * mpp);
+    // Snapping to 1/2/2.5/5 cannot hit 18 px exactly; within a factor of ~1.6
+    // is as close as a rounded interval can be held.
+    assert.ok(rowPx > 11 && rowPx < 29, `${mpp} m/px gave a ${rowPx.toFixed(1)} px row`);
+  }
+});
+
+test('steeper ground asks for a coarser interval, so its rows stay legible', () => {
+  const gentle = rowInterval(18, 65, 0.1);
+  const steep = rowInterval(18, 65, 0.5);
+  assert.ok(steep > gentle);
+});
+
+test('the DEM level tracks the map, one level per zoom', () => {
+  // A map world is 512 px per tile and a DEM world 256, so a sample every
+  // `step` screen px matches a DEM pixel at `zoom + 1 - log2(step)`.
+  assert.equal(demZoomFor(10, 2), 10);
+  assert.equal(demZoomFor(11, 2), 11);
+  assert.equal(demZoomFor(10, 4), 9);
+  // Clamped to what the dataset actually holds, at both ends.
+  assert.equal(demZoomFor(20, 3), 15);
+  assert.equal(demZoomFor(0, 64), 0);
+});
+
+// --------------------------------------------------------------------------
+// the studio's drawn hills
+
+test('a drawn hill is flat on top, flat at the base and steepest at the waist', () => {
+  assert.equal(moundProfile(0), 1);
+  assert.equal(moundProfile(1), 0);
+  assert.equal(moundProfile(-0.5), 1, 'clamped above the summit');
+  assert.equal(moundProfile(2), 0, 'clamped beyond the base');
+
+  const slopeAt = (t) => (moundProfile(t - 1e-4) - moundProfile(t + 1e-4)) / 2e-4;
+  assert.ok(slopeAt(0.01) < 0.1, 'summit is flat');
+  assert.ok(slopeAt(0.99) < 0.1, 'base is flat');
+  assert.ok(slopeAt(0.5) > slopeAt(0.2) && slopeAt(0.5) > slopeAt(0.8));
+  // The waist slope is 1.5 per unit of t, which is what `moundField` divides
+  // by to hit a requested steepness.
+  assert.ok(Math.abs(slopeAt(0.5) - 1.5) < 1e-3);
+});
+
+test('a mound is built to the steepness it was asked for', () => {
+  // 512 px across at zoom 10 on the equator, sampled every 4 px.
+  const scale = 512 * Math.pow(2, 10);
+  const spec = {
+    matrix: { a: scale, b: 0, c: 0, d: scale, e: 0, f: 0 },
+    width: 400,
+    height: 400,
+    pad: 0,
+    step: 4,
+    lat: 0,
+    peaks: [{ x: 50, y: 50, elev: 1000 }],
+    radiusPx: 120,
+    steepnessDeg: 30,
+  };
+  const field = moundField(spec);
+
+  let steepest = 0;
+  for (let j = 1; j < field.rows - 1; j++) {
+    for (let i = 1; i < field.cols - 1; i++) {
+      const k = j * field.cols + i;
+      const dx =
+        (field.height[k + 1] - field.height[k - 1]) / (2 * field.groundStep);
+      const dy =
+        (field.height[k + field.cols] - field.height[k - field.cols]) /
+        (2 * field.groundStep);
+      steepest = Math.max(steepest, Math.hypot(dx, dy));
+    }
+  }
+  // Within a few per cent: the waist falls between samples, so the discrete
+  // maximum sits just under the continuous one.
+  const wanted = Math.tan((30 * Math.PI) / 180);
+  assert.ok(
+    Math.abs(steepest - wanted) / wanted < 0.05,
+    `steepest sample was ${steepest.toFixed(3)}, wanted about ${wanted.toFixed(3)}`
+  );
+});
+
+test('mounds combine by maximum, so neighbouring hills keep their summits', () => {
+  const scale = 512 * Math.pow(2, 10);
+  const base = {
+    matrix: { a: scale, b: 0, c: 0, d: scale, e: 0, f: 0 },
+    width: 400,
+    height: 400,
+    pad: 0,
+    step: 4,
+    lat: 0,
+    radiusPx: 120,
+    steepnessDeg: 30,
+  };
+  const one = moundField({ ...base, peaks: [{ x: 30, y: 40, elev: 1000 }] });
+  const two = moundField({
+    ...base,
+    peaks: [
+      { x: 30, y: 40, elev: 1000 },
+      { x: 45, y: 40, elev: 1000 },
+    ],
+  });
+
+  const at = (f, i, j) => f.height[j * f.cols + i];
+  // Summing would raise the first summit when a neighbour arrives; taking the
+  // maximum leaves it exactly where it was.
+  assert.ok(Math.abs(at(two, 30, 40) - at(one, 30, 40)) < 1e-6);
+  assert.ok(at(two, 45, 40) > at(one, 45, 40), 'the second hill is there');
+});
+
+// --------------------------------------------------------------------------
+// holding relief across zooms
+
+/**
+ * The 75th-percentile slope over land on one volcano (Rinjani), measured from
+ * the real DEM at eight zooms. Degrees against metres per sample. This is the
+ * observation the exaggeration law is fitted to, kept here so a change to the
+ * law has something to answer to.
+ */
+const MEASURED_SLOPE = [
+  [3630, 1.9],
+  [1815, 3.1],
+  [907, 5.5],
+  [454, 7.8],
+  [227, 10.8],
+  [113, 12.7],
+  [57, 22.1],
+  [28, 30.2],
+];
+
+test('measured slope really does collapse as the baseline grows', () => {
+  // Not testing our code - testing that the problem exists, so the fix below
+  // is answering something real. The same ground reads sixteen times gentler
+  // at 3.6 km per sample than at 28 m.
+  const gentlest = MEASURED_SLOPE[0][1];
+  const steepest = MEASURED_SLOPE[MEASURED_SLOPE.length - 1][1];
+  assert.ok(steepest / gentlest > 10, 'the falloff is large, not marginal');
+  for (let i = 1; i < MEASURED_SLOPE.length; i++) {
+    assert.ok(MEASURED_SLOPE[i][1] > MEASURED_SLOPE[i - 1][1], 'monotonic');
+  }
+});
+
+test('exaggeration is 1 at true scale and grows as the map zooms out', () => {
+  assert.ok(Math.abs(reliefExaggeration(TRUE_SCALE_GROUND_STEP) - 1) < 1e-9);
+  assert.ok(reliefExaggeration(1000) > reliefExaggeration(500));
+  assert.ok(reliefExaggeration(500) > reliefExaggeration(TRUE_SCALE_GROUND_STEP));
+  // Below true scale it drops under 1, which is what stops a zoomed-right-in
+  // sheet from going solid.
+  assert.ok(reliefExaggeration(28) < 1);
+});
+
+test('exaggeration flattens the measured falloff to near-constant ink', () => {
+  const lifted = MEASURED_SLOPE.map(([groundStep, deg]) => {
+    const slope = Math.tan((deg * Math.PI) / 180);
+    return (Math.atan(slope * reliefExaggeration(groundStep)) * 180) / Math.PI;
+  });
+
+  const lo = Math.min(...lifted);
+  const hi = Math.max(...lifted);
+  // Raw, the spread is a factor of sixteen; corrected it must be inside 1.6,
+  // and must sit near the 20 degrees the stroke widths are calibrated against.
+  assert.ok(hi / lo < 1.6, `spread was ${(hi / lo).toFixed(2)}: ${lifted}`);
+  assert.ok(lo > 15 && hi < 28, `range was ${lo.toFixed(1)}..${hi.toFixed(1)}`);
+});
+
+// --------------------------------------------------------------------------
+// Lehmann's limits
+
+test("the defaults keep Lehmann's slope limits", () => {
+  // These two are not taste. Lehmann leaves everything under 5 degrees bare and
+  // fills the gap completely at 45, and the proportion of black in between is
+  // the slope as a fraction of that ceiling. Bringing the ceiling down towards
+  // the steepest ground actually in view is the tempting mistake - it was made
+  // here first, at 20 degrees - and it doubles the ink on every hillside.
+  // Measured on one view, that alone took ink coverage from 2.01% to 0.76%.
+  assert.equal(HACHURE_DEFAULTS.minSlopeDeg, 5);
+  assert.equal(HACHURE_DEFAULTS.maxSlopeDeg, 45);
+});
+
+test('the ink follows the slope as a fraction of the solid-black angle', () => {
+  const ink = (deg) =>
+    Math.tan((deg * Math.PI) / 180) /
+    Math.tan((HACHURE_DEFAULTS.maxSlopeDeg * Math.PI) / 180);
+
+  // Half the ceiling is not half the ink - the rule is on the tangent, not the
+  // angle - but the shape must be monotonic and must reach 1 at the ceiling.
+  assert.ok(Math.abs(ink(45) - 1) < 1e-9);
+  assert.ok(ink(20) > 0.3 && ink(20) < 0.4);
+  assert.ok(ink(5) < 0.1);
+  assert.ok(ink(30) > ink(20) && ink(20) > ink(10));
+});
+
+test('a hachure is never longer than about 4mm nor shorter than its spacing', () => {
+  // Lehmann's own bounds on the mark. The default row length has to sit inside
+  // them at the spacing the defaults ask for, or the tracer spends its time
+  // emitting strokes the drawing rules would have rejected.
+  const FOUR_MM_IN_PX = 15;
+  assert.ok(HACHURE_DEFAULTS.rowLength <= FOUR_MM_IN_PX);
+  assert.ok(HACHURE_DEFAULTS.rowLength >= HACHURE_DEFAULTS.spacing);
 });

@@ -24,6 +24,12 @@ import {
   readGeoJsonFile,
 } from "./geojson-input.js";
 import { exportPng } from "./export-png.js";
+import { DEM_ATTRIBUTION } from "./dem.js";
+import {
+  DEFAULTS as HACHURE,
+  SOURCES_NEEDING_DEM,
+  createHachures,
+} from "./hachure.js";
 import { createRhumb } from "./rhumb.js";
 import { createTimeline, datePluginLoaded } from "./timeline.js";
 import {
@@ -54,6 +60,8 @@ const state = {
   overlay: null,
   compass: null,
   rhumb: null,
+  hachures: null,
+  hachurePanel: null,
   data: null,
   basemap: "paper",
   panel: null,
@@ -134,6 +142,10 @@ async function boot() {
     radiusDeg: RHUMB.radiusDeg,
     opacity: RHUMB.opacity,
   });
+
+  // Also off until asked for, and for a harder reason than the rhumb lines:
+  // it is the one feature here that fetches data from someone else's server.
+  state.hachures = createHachures(state.map, { onStatus: setHachureStatus });
 
   // Built regardless of which basemap starts, so switching to the historical
   // one is instant; `setBasemap` reveals it. Skipped entirely if the CDN
@@ -251,6 +263,7 @@ function buildUi() {
       applyAnimationChange(state.overlay, name, value, values),
   );
 
+  buildHachureSection(section(root, "Hachures", false));
   buildRoseSection(section(root, "Wind rose", false));
   buildRhumbSection(section(root, "Rhumb lines", false));
   buildExportSection(section(root, "Export", true));
@@ -376,6 +389,280 @@ function buildDataSection(body) {
   status.className = "hint";
   status.id = "data-status";
   body.appendChild(status);
+}
+
+/**
+ * Engraved hachures over real terrain.
+ *
+ * The odd one out in this panel: every other control here works on data the
+ * page already has, and this one fetches elevation tiles from AWS. So it is
+ * off by default, it says where the data comes from, and switching it on adds
+ * a line to the map's attribution.
+ */
+function buildHachureSection(body) {
+  const panel = buildPanel(
+    body,
+    [
+      {
+        name: "enabled",
+        label: "Draw hachures",
+        type: "checkbox",
+        value: false,
+      },
+      {
+        name: "source",
+        label: "Relief from",
+        type: "buttons",
+        value: HACHURE.source,
+        options: [
+          {
+            value: "terrain",
+            label: "Terrain",
+            title: "Measured elevation, fetched from AWS Open Data",
+          },
+          {
+            value: "mounds",
+            label: "Mounds",
+            title: "Real summits, redrawn as idealised hills",
+          },
+        ],
+        hint:
+          "Terrain is the survey: real slopes, and it needs room to show — " +
+          "below about zoom 7 the DEM is coarser than the strokes. Mounds keeps " +
+          "the summits and throws the shape away, the way relief was drawn " +
+          "before contour surveying.",
+      },
+      {
+        name: "exaggerate",
+        label: "Hold relief across zooms",
+        type: "checkbox",
+        value: HACHURE.exaggerate,
+        hint:
+          "Terrain only. Slope is measured over a baseline, and zooming out " +
+          "grows it — at 1.8 km per sample the flanks of a 3,700 m volcano " +
+          "really do average 3°, which is flat ground, so the sheet comes out " +
+          "bare. This raises the heights to undo that, as an engraver did on a " +
+          "small-scale sheet. Off gives true slopes.",
+      },
+      {
+        name: "moundPx",
+        label: "Hill size",
+        type: "range",
+        min: 16,
+        max: 140,
+        step: 2,
+        value: HACHURE.moundPx,
+        format: (v) => `${v} px`,
+        hint:
+          "Mounds only. Also the spacing rule for finding summits: two tops " +
+          "closer together than this are drawn as one hill.",
+      },
+      {
+        name: "steepnessDeg",
+        label: "Invented steepness",
+        type: "range",
+        min: 5,
+        max: 45,
+        step: 1,
+        value: HACHURE.steepnessDeg,
+        format: (v) => `${v}°`,
+        hint:
+          "Mounds only. The slope the drawn hills are built to, which " +
+          "sets how heavy its hachures come out. It is scaled through the map " +
+          "scale, so an invented hillside looks the same at every zoom.",
+      },
+      {
+        name: "spacing",
+        label: "Spacing",
+        type: "range",
+        min: 1.5,
+        max: 16,
+        step: 0.5,
+        value: HACHURE.spacing,
+        format: (v) => `${v} px`,
+        hint:
+          "Constant, by Lehmann’s rule — it is the stroke *weight* that carries " +
+          "the slope, never the gap. Stroke width is tied to this, so going " +
+          "finer makes the texture finer rather than lighter; use Ink for " +
+          "lighter. Tighter spacing means more strokes and a slower rebuild.",
+      },
+      {
+        name: "weight",
+        label: "Ink",
+        type: "range",
+        min: 0.4,
+        max: 1.8,
+        step: 0.05,
+        value: HACHURE.weight,
+        format: (v) => `${Math.round(v * 100)}%`,
+      },
+      {
+        name: "minSlopeDeg",
+        label: "Flat ground below",
+        type: "range",
+        min: 1,
+        max: 20,
+        step: 1,
+        value: HACHURE.minSlopeDeg,
+        format: (v) => `${v}°`,
+        hint:
+          "Gentler than this stays bare paper. Lehmann left everything under " +
+          "5° blank, which is most of what gives an engraved sheet its white.",
+      },
+      {
+        name: "maxSlopeDeg",
+        label: "Solid black at",
+        type: "range",
+        min: 10,
+        max: 60,
+        step: 1,
+        value: HACHURE.maxSlopeDeg,
+        format: (v) => `${v}°`,
+        hint:
+          "The slope where the ink fills the gap completely; everything gentler " +
+          "gets that fraction of black. Lehmann put it at 45°. Bringing it down " +
+          "towards the steepest ground actually in view is the quickest way to " +
+          "make relief overpower the rest of the map.",
+      },
+      {
+        name: "rowLength",
+        label: "Row length",
+        type: "range",
+        min: 6,
+        max: 40,
+        step: 1,
+        value: HACHURE.rowLength,
+        format: (v) => `${v} px`,
+        hint:
+          "Strokes are cut where they cross a contour, which is what lines the " +
+          "rows up across a hillside. This asks for a row length on screen and " +
+          "works back to the contour interval that gives it — rounded to a " +
+          "figure a surveyor would have picked, and shown below. Lehmann’s " +
+          "limits were 4 mm at the long end and the spacing at the short.",
+      },
+      {
+        name: "generalise",
+        label: "Generalise",
+        type: "range",
+        min: 0,
+        max: 6,
+        step: 1,
+        value: HACHURE.generalise,
+        format: (v) => (v ? `${v * 3} px` : "none"),
+        hint:
+          "Smooths the surface before tracing. At zero the strokes follow every " +
+          "artefact in the DEM and go frizzy; the engraved look is a generalised " +
+          "surface.",
+      },
+      {
+        name: "ink",
+        label: "Colour",
+        type: "color",
+        value: HACHURE.ink,
+      },
+      {
+        name: "opacity",
+        label: "Opacity",
+        type: "range",
+        min: 0.2,
+        max: 1,
+        step: 0.05,
+        value: HACHURE.opacity,
+        format: (v) => `${Math.round(v * 100)}%`,
+      },
+    ],
+    (name, value) => {
+      if (name === "enabled") {
+        state.hachures.setEnabled(value);
+      } else {
+        state.hachures.setOptions({ [name]: value });
+      }
+      if (name === "enabled" || name === "source") {
+        showRelevantFields(panel, panel.values.source);
+        // Only two of the three sources touch the tile server, so the
+        // attribution has to come and go with the choice, not just the switch.
+        refreshAttribution();
+      }
+    },
+  );
+
+  state.hachurePanel = panel;
+  showRelevantFields(panel, HACHURE.source);
+
+  const status = document.createElement("p");
+  status.className = "hint";
+  status.id = "hachure-status";
+  body.appendChild(status);
+}
+
+/**
+ * Hide the controls the chosen relief source does not use. Three sources with
+ * their own parameters would otherwise leave two thirds of this section inert
+ * at all times, and a slider that does nothing is worse than no slider.
+ */
+function showRelevantFields(panel, source) {
+  const used = {
+    exaggerate: source === "terrain",
+    moundPx: source === "mounds",
+    steepnessDeg: source !== "terrain",
+  };
+  for (const [name, show] of Object.entries(used)) {
+    const input = panel.el(name);
+    // `closest`, not `parentElement`: a checkbox is wrapped in its own label,
+    // so its parent is that label rather than the row. Hiding the parent would
+    // take the control away and leave its hint paragraph behind, stranded.
+    const row = input && input.closest(".field");
+    if (row) row.hidden = !show;
+  }
+}
+
+/** True when the live choice of relief source will hit the tile server. */
+function usesDem() {
+  if (!state.hachures || !state.hachures.isEnabled()) return false;
+  const source = state.hachurePanel
+    ? state.hachurePanel.values.source
+    : HACHURE.source;
+  // A supplied summit list is the whole reason the DEM was being fetched for
+  // `mounds`, so with one in hand nothing is requested and nothing is owed.
+  if (source === "mounds" && state.hachures.hasSuppliedPeaks()) return false;
+  return SOURCES_NEEDING_DEM.has(source);
+}
+
+function setHachureStatus(stats) {
+  const status = document.getElementById("hachure-status");
+  if (!status) return;
+
+  if (stats.error) {
+    status.textContent = `elevation unavailable: ${stats.error}`;
+    return;
+  }
+  if (stats.pending) {
+    status.textContent = usesDem() ? "fetching elevation…" : "tracing…";
+    return;
+  }
+  if (!stats.strokes) {
+    if (!state.hachures || !state.hachures.isEnabled()) {
+      status.textContent = "";
+    } else {
+      status.textContent =
+        "no ground steep enough in view — zoom in, or lower the flat-ground threshold";
+    }
+    return;
+  }
+
+  const rows = `${stats.strokes.toLocaleString()} strokes, ${stats.interval} m rows`;
+  if (stats.source === "mounds") {
+    status.textContent =
+      `${rows} — ${stats.peaks} hills from ` +
+      (stats.supplied ? "a supplied summit list" : `DEM z${stats.demZoom}`);
+  } else {
+    // The exaggeration is stated rather than folded in silently: the relief
+    // quoted is the ground's, and the factor says how much the drawing lifts it.
+    const lift =
+      stats.exaggeration > 1.05 ? `, drawn ×${stats.exaggeration.toFixed(1)}` : "";
+    status.textContent =
+      `${rows} (${Math.round(stats.relief)} m of relief${lift}), DEM z${stats.demZoom}`;
+  }
 }
 
 function buildRoseSection(body) {
@@ -689,6 +976,12 @@ async function savePng(button) {
       scale: Number(state.exportValues.scale),
       grain: state.exportValues.grain,
       vignette: state.exportValues.vignette,
+      // Rebuilt rather than upscaled: at 2x and 3x the map is re-rendered at
+      // the larger size, and hachures traced for the old one would come out
+      // as soft, over-thick strokes.
+      underlay: state.hachures.isEnabled()
+        ? () => state.hachures.render()
+        : undefined,
       decorate: state.exportValues.compass ? paintCompass : undefined,
       onProgress: (message) => {
         status.textContent = message;
@@ -751,6 +1044,7 @@ function setBasemap(key) {
     state.attribution,
   );
   setBasemapNote(key);
+  refreshAttribution();
 
   state.applying = true;
   state.panel.set("color", basemap.ink);
@@ -775,6 +1069,26 @@ function setBasemap(key) {
     // Date filters live on the style, so a style swap discards them.
     if (dated && state.timeline) state.timeline.reapply();
   });
+}
+
+/**
+ * Rebuild the attribution control from the basemap's lines plus anything an
+ * overlay has switched on. MapLibre takes custom attribution at construction
+ * only, so "changing" it means replacing the control - which is what
+ * `applyBasemap` does too, and why this runs after it rather than instead.
+ */
+function refreshAttribution() {
+  const lines = [...(BASEMAPS[state.basemap].attribution || [])];
+  if (usesDem()) lines.push(DEM_ATTRIBUTION);
+
+  if (state.attribution.control) {
+    state.map.removeControl(state.attribution.control);
+  }
+  state.attribution.control = new maplibregl.AttributionControl({
+    compact: true,
+    customAttribution: lines,
+  });
+  state.map.addControl(state.attribution.control, "bottom-right");
 }
 
 function setBasemapNote(key) {

@@ -154,6 +154,57 @@ corner, the criss-crossing rhumb lines of a portolan chart, and paper grain. On
 the OpenHistoricalMap basemap a year slider appears over the map, so you can
 watch the map itself change through history while the ripples stay put.
 
+**Hachures** put old-map relief on the land, the way the waterlines put it on
+the sea: short strokes down the fall line, thickening with the slope by
+Lehmann's rule, cut into rows where they cross a contour so a hillside reads as
+engraved rather than shaded. Flat ground stays bare paper.
+
+The tracer never asks where its surface came from, so there are two to pick
+from:
+
+| Relief from | What it is | Fetches |
+| ----------- | ---------- | ------- |
+| **Terrain** | Measured elevation. Real slopes, real summits. Wants room to show — below about zoom 7 the DEM is coarser than the strokes. | [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data |
+| **Mounds** | Real summits, redrawn as idealised hills with a flat top and a steep waist — relief as it was drawn before contour surveying. Overlapping hills merge into ranges. | the same, only to find the summits |
+
+Either adds a line to the map's attribution while it is on.
+
+**Terrain holds its relief as you zoom out**, which it has to, because slope is
+measured over a baseline and zooming out grows the baseline. Sampled on one
+volcano, the 75th-percentile slope over land falls from 30° at 28 m per sample
+to 1.9° at 3.6 km — the same ground, sixteen times gentler, and well under the
+flat-ground threshold, so a small-scale sheet came out as a scatter of hairlines
+on a bare chain. Nothing is lost by the coarser sampling; the gentle figure is
+correct. The answer is the engraver's: exaggerate. Heights are raised by the
+inverse of the measured falloff (about `L^0.585`), which holds the ink on a
+hillside near-constant from zoom 4 to zoom 13. The factor is shown in the status
+line rather than hidden, the quoted relief is always the ground's, and
+`Hold relief across zooms` turns it off for true slopes. Mounds needs none of
+this: it is built to a stated steepness through the map scale, so it is
+scale-invariant already.
+
+The ink follows **Lehmann's 1799 rule**, including his limits, which are load-bearing
+rather than decorative: nothing under 5° is drawn at all, 45° is where the ink
+fills the gap completely, a hachure is never longer than about 4 mm nor shorter
+than the gap to its neighbour. Putting the solid-black point near the steepest
+ground actually in view — rather than at 45° — is the quickest way to make
+relief shout down the rest of the map.
+
+Mounds will also take a summit list instead of finding its own, via
+`hachures.setPeaks([{lng, lat, elev}, …])` — at which point it stops touching
+the network too. That is the seam for a precomputed extract, which can apply a
+real prominence test over a whole country instead of a window maximum over one
+screenful. [walkthru.earth's DEM-Terrain](https://source.coop/walkthru-earth/dem-terrain)
+publishes GEDTM-30m as H3 cells with `elev`, `slope`, `aspect`, `tri` and `tpi`
+already computed, which makes the extract close to a one-liner:
+
+```sql
+SELECT h3_cell_to_lng(h3_index) AS lng, h3_cell_to_lat(h3_index) AS lat, elev
+FROM read_parquet('s3://us-west-2.opendata.source.coop/walkthru-earth/dem-terrain/v2/h3/h3_res=8/data.parquet')
+WHERE tpi > 60          -- standing well above its neighbours
+ORDER BY elev DESC LIMIT 500;
+```
+
 ## Good to know
 
 - **No tilt.** Bearing is fine, pitch is not — the overlay is flat by
