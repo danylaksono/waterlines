@@ -63,6 +63,14 @@ closed form worth recording, and because it is the case where plain vector
 geometry is the right answer — which is what makes the argument of §3 for
 rasterising the waterlines concrete rather than assumed.
 
+The hachured relief layer is **not** covered here. It shares this report's
+coordinate system (§4.4), raster cache (§4.7) and compositing order, and nothing
+else: it draws inside the coastline rather than outside it, from elevation
+rather than from the polygon, and its central difficulty — that slope is a
+quantity measured over a baseline, and the baseline changes with every zoom
+level — has no analogue in anything below. It has its own report,
+[`hachures.md`](hachures.md).
+
 ---
 
 ## 2. Background

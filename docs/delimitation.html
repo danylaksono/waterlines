@@ -1,2113 +1,2807 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The seam is a boundary — waterlines and the law of the sea</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23cfdcd8'/%3E%3Cg fill='none' stroke='%236a5138' stroke-width='1.4'%3E%3Ccircle cx='6' cy='16' r='5'/%3E%3Ccircle cx='6' cy='16' r='9' opacity='.5'/%3E%3Ccircle cx='26' cy='16' r='5'/%3E%3Ccircle cx='26' cy='16' r='9' opacity='.5'/%3E%3C/g%3E%3Cpath d='M16 2 L16 30' stroke='%23a3402c' stroke-width='1.6' stroke-dasharray='3 2'/%3E%3C/svg%3E">
-<style>
-/* ------------------------------------------------------------------ theme --
-   Same palette as docs/interactive_explanations.html, with the roles fixed
-   for this page: green is the legally correct object, oxide is the one this
-   renderer actually produces, navy is construction geometry.               */
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The seam is a boundary — waterlines and the law of the sea</title>
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23cfdcd8'/%3E%3Cg fill='none' stroke='%236a5138' stroke-width='1.4'%3E%3Ccircle cx='6' cy='16' r='5'/%3E%3Ccircle cx='6' cy='16' r='9' opacity='.5'/%3E%3Ccircle cx='26' cy='16' r='5'/%3E%3Ccircle cx='26' cy='16' r='9' opacity='.5'/%3E%3C/g%3E%3Cpath d='M16 2 L16 30' stroke='%23a3402c' stroke-width='1.6' stroke-dasharray='3 2'/%3E%3C/svg%3E">
+  <style>
+    /* ------------------------------------------------------------------ theme --
+   Roles fixed for this page: green is the legally correct object, oxide is
+   the one the screen actually produces, navy is construction geometry.     */
 
-:root {
-  --paper:      #f4ecd8;
-  --paper-deep: #e7dbbe;
-  --paper-edge: #ece0c4;
-  --ink:        #3a3128;
-  --ink-soft:   #6b5c48;
-  --rule:       #c9b894;
-  --accent:     #6a5138;
-  --sea:        #cfdcd8;
-  --land:       #efe4c8;
-  --coast:      #9a8763;
-  --teal:       #2f6f7e;
-  --navy:       #2b5f8a;
-  --green:      #3b7d74;
-  --oxide:      #a3402c;
+    :root {
+      --paper: #f4ecd8;
+      --paper-deep: #e7dbbe;
+      --paper-edge: #ece0c4;
+      --ink: #3a3128;
+      --ink-soft: #6b5c48;
+      --rule: #c9b894;
+      --accent: #6a5138;
+      --sea: #cfdcd8;
+      --land: #efe4c8;
+      --coast: #9a8763;
+      --teal: #2f6f7e;
+      --navy: #2b5f8a;
+      --green: #3b7d74;
+      --oxide: #a3402c;
 
-  --serif: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
-  --sans:  ui-sans-serif, system-ui, "Segoe UI", sans-serif;
-  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
+      --serif: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+      --sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+    * {
+      box-sizing: border-box;
+    }
 
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 15px/1.6 var(--sans);
-  -webkit-font-smoothing: antialiased;
-}
+    html {
+      scroll-behavior: smooth;
+    }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  pointer-events: none;
-  mix-blend-mode: multiply;
-  opacity: 0.42;
-  background-image: var(--grain, none);
-  background-repeat: repeat;
-}
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.6 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
 
-a { color: var(--accent); }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+      opacity: 0.42;
+      background-image: var(--grain, none);
+      background-repeat: repeat;
+    }
 
-/* -------------------------------------------------------------- typography */
+    a {
+      color: var(--accent);
+    }
 
-h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; }
+    /* Inline citations jump to the sources list. Style them as footnotes, not
+       as navigation, so a link inside a sentence reads as a reference. */
+    a[href^="#src"] {
+      text-decoration: none;
+      border-bottom: 1px dotted var(--rule);
+    }
 
-.eyebrow {
-  font: 600 11px/1 var(--sans);
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--ink-soft);
-  margin: 0 0 14px;
-}
+    a[href^="#src"]:hover {
+      border-bottom-color: var(--accent);
+    }
 
-.lede { color: var(--ink-soft); }
+    /* -------------------------------------------------------------- typography */
 
-code {
-  font: 0.875em var(--mono);
-  background: var(--paper-deep);
-  padding: 1px 5px;
-  border-radius: 2px;
-}
+    h1,
+    h2,
+    h3 {
+      font-family: var(--serif);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
 
-/* ------------------------------------------------------------------ layout */
+    .eyebrow {
+      font: 600 11px/1 var(--sans);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--ink-soft);
+      margin: 0 0 14px;
+    }
 
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
-.wrap.narrow { max-width: 760px; }
-.centered { text-align: center; }
+    .lede {
+      color: var(--ink-soft);
+    }
 
-header.masthead {
-  padding: 92px 0 68px;
-  border-bottom: 1px solid var(--rule);
-  text-align: center;
-}
-header.masthead h1 {
-  font-size: clamp(36px, 5.6vw, 58px);
-  line-height: 1.06;
-  margin: 0 0 22px;
-}
-header.masthead h1 em {
-  font-style: normal;
-  color: var(--accent);
-  border-bottom: 3px double var(--rule);
-}
-header.masthead p.sub {
-  max-width: 58ch;
-  margin: 0 auto;
-  font-size: 18px;
-  color: var(--ink-soft);
-}
-.masthead-meta {
-  margin-top: 32px;
-  font: 12px var(--sans);
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-.masthead-meta a { margin: 0 8px; }
+    code {
+      font: 0.875em var(--mono);
+      background: var(--paper-deep);
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
 
-section.step { padding: 74px 0; border-bottom: 1px solid var(--rule); }
-@media (max-width: 900px) { section.step { padding: 54px 0; } }
+    /* ------------------------------------------------------------------ layout */
 
-.prose p  { margin: 0 0 16px; }
-.prose p:last-child { margin-bottom: 0; }
-.prose h3 { font-size: 19px; margin: 0 0 12px; }
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
 
-.numeral {
-  display: inline-block;
-  font: 600 12px/1 var(--serif);
-  letter-spacing: 0.14em;
-  color: var(--accent);
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  padding: 5px 9px;
-  margin-right: 10px;
-  vertical-align: 1px;
-  background: var(--paper-deep);
-}
+    .wrap.narrow {
+      max-width: 760px;
+    }
 
-.section-title { font-size: 30px; text-align: center; margin: 0; }
-.section-title.left { text-align: left; }
+    .centered {
+      text-align: center;
+    }
 
-.stack-lede {
-  max-width: 64ch;
-  margin: 16px auto 0;
-  text-align: center;
-  font-size: 16px;
-  color: var(--ink-soft);
-}
+    header.masthead {
+      padding: 92px 0 68px;
+      border-bottom: 1px solid var(--rule);
+      text-align: center;
+    }
 
-.cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 46px;
-  align-items: start;
-  margin-top: 44px;
-}
-.cols > * { min-width: 0; }
-.prose.single { max-width: 70ch; margin: 42px auto 0; }
+    header.masthead h1 {
+      font-size: clamp(36px, 5.6vw, 58px);
+      line-height: 1.06;
+      margin: 0 0 22px;
+    }
 
-@media (max-width: 900px) { .cols { grid-template-columns: 1fr; gap: 30px; } }
+    header.masthead h1 em {
+      font-style: normal;
+      color: var(--accent);
+      border-bottom: 3px double var(--rule);
+    }
 
-/* ------------------------------------------------------------------ figure */
+    header.masthead p.sub {
+      max-width: 58ch;
+      margin: 0 auto;
+      font-size: 18px;
+      color: var(--ink-soft);
+    }
 
-.figure {
-  position: relative;
-  background: var(--sea);
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  box-shadow: 0 12px 30px rgba(58, 44, 18, 0.16);
-  overflow: hidden;
-  max-width: 900px;
-  margin: 34px auto 0;
-}
-.figure .stage { position: relative; width: 100%; padding-bottom: 58%; }
-.figure canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .masthead-meta {
+      margin-top: 32px;
+      font: 12px var(--sans);
+      color: var(--ink-soft);
+      letter-spacing: 0.04em;
+    }
 
-.figure .stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(120% 90% at 50% 45%,
-              rgba(0,0,0,0) 55%, rgba(60,45,20,0.22) 100%);
-}
+    .masthead-meta a {
+      margin: 0 8px;
+    }
 
-.stage.drag { cursor: move; }
+    section.step {
+      padding: 74px 0;
+      border-bottom: 1px solid var(--rule);
+    }
 
-.figure figcaption {
-  border-top: 1px solid var(--rule);
-  background: var(--paper);
-  padding: 9px 13px;
-  font-size: 12px;
-  color: var(--ink-soft);
-}
+    @media (max-width: 900px) {
+      section.step {
+        padding: 54px 0;
+      }
+    }
 
-@media (max-width: 900px) { .figure .stage { padding-bottom: 74%; } }
+    .prose p {
+      margin: 0 0 16px;
+    }
 
-/* ---------------------------------------------------------------- controls */
+    .prose p:last-child {
+      margin-bottom: 0;
+    }
 
-.controls {
-  border-top: 1px solid var(--rule);
-  background: var(--paper);
-  padding: 13px 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+    .prose h3 {
+      font-size: 19px;
+      margin: 0 0 12px;
+    }
 
-.ctl-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ctl-row.between { justify-content: space-between; }
+    .numeral {
+      display: inline-block;
+      font: 600 12px/1 var(--serif);
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      padding: 5px 9px;
+      margin-right: 10px;
+      vertical-align: 1px;
+      background: var(--paper-deep);
+    }
 
-.ctl-label {
-  font: 600 11px/1 var(--sans);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-soft);
-}
-.ctl-value { font: 12px var(--mono); color: var(--accent); }
+    .section-title {
+      font-size: 30px;
+      text-align: center;
+      margin: 0;
+    }
 
-.ctl-hint { font: 12px/1.35 var(--sans); color: var(--ink-soft); margin: 0; }
-.ctl-hint b { color: var(--ink); font-weight: 600; }
+    .section-title.left {
+      text-align: left;
+    }
 
-.segmented { display: flex; border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; flex: 0 0 auto; }
-.segmented button {
-  border: 0;
-  border-right: 1px solid var(--rule);
-  background: var(--paper-deep);
-  color: var(--ink-soft);
-  font: 600 11.5px/1 var(--sans);
-  letter-spacing: 0.06em;
-  padding: 8px 11px;
-  cursor: pointer;
-  transition: background 0.18s, color 0.18s;
-}
-.segmented button:last-child { border-right: 0; }
-.segmented button:hover { background: var(--paper-edge); color: var(--ink); }
-.segmented button[aria-pressed="true"] { background: var(--accent); color: var(--paper); }
-.segmented button[aria-pressed="true"].warn { background: var(--oxide); }
+    .stack-lede {
+      max-width: 64ch;
+      margin: 16px auto 0;
+      text-align: center;
+      font-size: 16px;
+      color: var(--ink-soft);
+    }
 
-.toggle {
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  background: var(--paper-deep);
-  color: var(--ink-soft);
-  font: 600 11.5px/1 var(--sans);
-  letter-spacing: 0.06em;
-  padding: 8px 11px;
-  cursor: pointer;
-}
-.toggle[aria-pressed="true"] { background: var(--oxide); color: var(--paper); border-color: var(--oxide); }
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 46px;
+      align-items: start;
+      margin-top: 44px;
+    }
 
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 18px;
-  background: transparent;
-  cursor: pointer;
-}
-input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: var(--rule); border-radius: 2px; }
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 15px; height: 15px; margin-top: -6px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--paper);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-input[type="range"]::-moz-range-track { height: 3px; background: var(--rule); border-radius: 2px; }
-input[type="range"]::-moz-range-thumb {
-  width: 13px; height: 13px; border-radius: 50%;
-  background: var(--accent); border: 2px solid var(--paper);
-}
+    .cols>* {
+      min-width: 0;
+    }
 
-.field { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; }
+    .prose.single {
+      max-width: 70ch;
+      margin: 42px auto 0;
+    }
 
-.readout { margin: 0; font: 11.5px/1.6 var(--mono); color: var(--ink-soft); }
-.readout b { color: var(--accent); font-weight: 400; }
-.readout i { color: var(--oxide); font-style: normal; }
-.readout u { color: var(--green); text-decoration: none; }
+    @media (max-width: 900px) {
+      .cols {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+    }
 
-/* ------------------------------------------------------------------ tables */
+    /* ------------------------------------------------------------------ figure */
 
-.tbl {
-  width: 100%;
-  max-width: 820px;
-  border-collapse: collapse;
-  margin: 26px auto 0;
-  font-size: 13.5px;
-}
-.tbl th, .tbl td { padding: 9px 10px; border-top: 1px solid var(--rule); text-align: left; vertical-align: top; }
-.tbl thead th {
-  border-top: 0;
-  font: 600 10.5px/1.3 var(--sans);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-soft);
-}
-.tbl caption {
-  caption-side: bottom;
-  margin-top: 12px;
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  text-align: left;
-}
-.tbl td.num { font-family: var(--mono); text-align: right; }
-.tbl td.bad { font-family: var(--mono); text-align: right; color: var(--oxide); }
-.tbl tr.hi td { background: var(--paper-deep); }
+    .figure {
+      position: relative;
+      background: var(--sea);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      box-shadow: 0 12px 30px rgba(58, 44, 18, 0.16);
+      overflow: hidden;
+      max-width: 900px;
+      margin: 34px auto 0;
+    }
 
-.tbl.corr td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }
-.tbl.corr td:last-child  { font-family: var(--serif); }
+    .figure .stage {
+      position: relative;
+      width: 100%;
+      padding-bottom: 58%;
+    }
 
-/* ------------------------------------------------------------------- notes */
+    .figure canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
 
-.aside {
-  border-left: 3px solid var(--rule);
-  background: var(--paper-deep);
-  padding: 13px 16px;
-  margin: 20px 0 0;
-  font-size: 13.5px;
-  color: var(--ink-soft);
-  border-radius: 0 3px 3px 0;
-}
-.aside strong { color: var(--ink); }
-.aside.warn { border-left-color: var(--oxide); }
+    .figure .stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(120% 90% at 50% 45%,
+          rgba(0, 0, 0, 0) 55%, rgba(60, 45, 20, 0.22) 100%);
+    }
 
-.formula {
-  text-align: center;
-  font-family: var(--serif);
-  font-size: 21px;
-  margin: 26px 0;
-  color: var(--ink);
-}
-.formula small { font-size: 13px; color: var(--ink-soft); display: block; margin-top: 8px; font-family: var(--sans); }
+    .stage.drag {
+      cursor: move;
+    }
 
-.rules { list-style: none; margin: 0; padding: 0; }
-.rules li { border-top: 1px solid var(--rule); padding: 14px 0; }
-.rules li strong { display: block; font-family: var(--serif); font-size: 17px; margin-bottom: 3px; }
+    .figure figcaption {
+      border-top: 1px solid var(--rule);
+      background: var(--paper);
+      padding: 9px 13px;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
 
-/* A legend that names the ink, so the figures need no text on them. */
-.key { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--ink-soft); }
-.key span { display: inline-flex; align-items: center; gap: 6px; }
-.key i { width: 15px; height: 3px; border-radius: 2px; display: inline-block; }
-.key i.dot { width: 8px; height: 8px; border-radius: 50%; }
+    @media (max-width: 900px) {
+      .figure .stage {
+        padding-bottom: 74%;
+      }
+    }
 
-/* ------------------------------------------------------------------ footer */
+    /* ---------------------------------------------------------------- controls */
 
-.credits {
-  background: var(--paper-deep);
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: 24px 28px;
-  max-width: 680px;
-  margin: 0 auto;
-  text-align: left;
-}
-.credits h3 { margin: 0 0 14px; font-size: 15px; letter-spacing: 0.04em; }
-.credits ul { list-style: none; margin: 0; padding: 0; }
-.credits li { padding: 8px 0; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-soft); }
-.credits li:first-of-type { border-top: 0; }
-.credits li strong { color: var(--ink); }
-.credits .caveat { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 12.5px; font-style: italic; }
+    .controls {
+      border-top: 1px solid var(--rule);
+      background: var(--paper);
+      padding: 13px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-footer.end { padding: 60px 0 90px; text-align: center; }
-footer.end h2 { font-size: 32px; margin: 0 0 10px; }
+    .ctl-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    .ctl-row.between {
+      justify-content: space-between;
+    }
 
-/* Last, so it beats the `flex: 0 0 auto` on `.segmented` above.
+    .ctl-label {
+      font: 600 11px/1 var(--sans);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-soft);
+    }
+
+    .ctl-value {
+      font: 12px var(--mono);
+      color: var(--accent);
+    }
+
+    .ctl-hint {
+      font: 12px/1.35 var(--sans);
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
+    .ctl-hint b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .segmented {
+      display: flex;
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .segmented button {
+      border: 0;
+      border-right: 1px solid var(--rule);
+      background: var(--paper-deep);
+      color: var(--ink-soft);
+      font: 600 11.5px/1 var(--sans);
+      letter-spacing: 0.06em;
+      padding: 8px 11px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+    }
+
+    .segmented button:last-child {
+      border-right: 0;
+    }
+
+    .segmented button:hover {
+      background: var(--paper-edge);
+      color: var(--ink);
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--paper);
+    }
+
+    .segmented button[aria-pressed="true"].warn {
+      background: var(--oxide);
+    }
+
+    .toggle {
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      background: var(--paper-deep);
+      color: var(--ink-soft);
+      font: 600 11.5px/1 var(--sans);
+      letter-spacing: 0.06em;
+      padding: 8px 11px;
+      cursor: pointer;
+    }
+
+    .toggle[aria-pressed="true"] {
+      background: var(--oxide);
+      color: var(--paper);
+      border-color: var(--oxide);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 18px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      background: var(--rule);
+      border-radius: 2px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      margin-top: -6px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--paper);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 3px;
+      background: var(--rule);
+      border-radius: 2px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--paper);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1 1 220px;
+    }
+
+    .readout {
+      margin: 0;
+      font: 11.5px/1.6 var(--mono);
+      color: var(--ink-soft);
+    }
+
+    .readout b {
+      color: var(--accent);
+      font-weight: 400;
+    }
+
+    .readout i {
+      color: var(--oxide);
+      font-style: normal;
+    }
+
+    .readout u {
+      color: var(--green);
+      text-decoration: none;
+    }
+
+    /* ------------------------------------------------------------------ tables */
+
+    .tbl {
+      width: 100%;
+      max-width: 820px;
+      border-collapse: collapse;
+      margin: 26px auto 0;
+      font-size: 13.5px;
+    }
+
+    .tbl th,
+    .tbl td {
+      padding: 9px 10px;
+      border-top: 1px solid var(--rule);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .tbl thead th {
+      border-top: 0;
+      font: 600 10.5px/1.3 var(--sans);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-soft);
+    }
+
+    .tbl caption {
+      caption-side: bottom;
+      margin-top: 12px;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      text-align: left;
+    }
+
+    .tbl td.num {
+      font-family: var(--mono);
+      text-align: right;
+    }
+
+    .tbl td.bad {
+      font-family: var(--mono);
+      text-align: right;
+      color: var(--oxide);
+    }
+
+    .tbl tr.hi td {
+      background: var(--paper-deep);
+    }
+
+    .tbl.corr td:first-child {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--ink-soft);
+    }
+
+    .tbl.corr td:last-child {
+      font-family: var(--serif);
+    }
+
+    /* ------------------------------------------------------------------- notes */
+
+    .aside {
+      border-left: 3px solid var(--rule);
+      background: var(--paper-deep);
+      padding: 13px 16px;
+      margin: 20px 0 0;
+      font-size: 13.5px;
+      color: var(--ink-soft);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .aside strong {
+      color: var(--ink);
+    }
+
+    .aside.warn {
+      border-left-color: var(--oxide);
+    }
+
+    .formula {
+      text-align: center;
+      font-family: var(--serif);
+      font-size: 21px;
+      margin: 26px 0;
+      color: var(--ink);
+    }
+
+    .formula small {
+      font-size: 13px;
+      color: var(--ink-soft);
+      display: block;
+      margin-top: 8px;
+      font-family: var(--sans);
+    }
+
+    .rules {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .rules li {
+      border-top: 1px solid var(--rule);
+      padding: 14px 0;
+    }
+
+    .rules li strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 17px;
+      margin-bottom: 3px;
+    }
+
+    /* A legend that names the ink, so the figures need no text on them. */
+    .key {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .key span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .key i {
+      width: 15px;
+      height: 3px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .key i.dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ------------------------------------------------------------------ footer */
+
+    .credits {
+      background: var(--paper-deep);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      padding: 24px 28px;
+      max-width: 680px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .credits h3 {
+      margin: 0 0 14px;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+    }
+
+    .credits ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .credits li {
+      padding: 8px 0;
+      border-top: 1px solid var(--rule);
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    .credits li:first-of-type {
+      border-top: 0;
+    }
+
+    .credits li strong {
+      color: var(--ink);
+    }
+
+    .credits .caveat {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--rule);
+      font-size: 12.5px;
+      font-style: italic;
+    }
+
+    footer.end {
+      padding: 60px 0 90px;
+      text-align: center;
+    }
+
+    footer.end h2 {
+      font-size: 32px;
+      margin: 0 0 10px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+    }
+
+    /* Last, so it beats the `flex: 0 0 auto` on `.segmented` above.
    On a phone a four-button group is wider than the frame, and `.figure` clips
    rather than scrolls — so the last button simply cannot be reached. Wrap the
    groups instead of letting them overflow. */
-@media (max-width: 700px) {
-  .segmented { flex-wrap: wrap; flex: 1 1 100%; }
-  .segmented button { flex: 1 1 auto; padding: 9px 8px; font-size: 11px; border-bottom: 1px solid var(--rule); }
-  .toggle { flex: 1 1 100%; padding: 9px 8px; }
-  .key { font-size: 11px; gap: 12px; }
-  .wrap { padding: 0 18px; }
-}
-</style>
+    @media (max-width: 700px) {
+      .segmented {
+        flex-wrap: wrap;
+        flex: 1 1 100%;
+      }
+
+      .segmented button {
+        flex: 1 1 auto;
+        padding: 9px 8px;
+        font-size: 11px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .toggle {
+        flex: 1 1 100%;
+        padding: 9px 8px;
+      }
+
+      .key {
+        font-size: 11px;
+        gap: 12px;
+      }
+
+      .wrap {
+        padding: 0 18px;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<header class="masthead">
-  <div class="wrap">
-    <p class="eyebrow">A finding, and an interactive explainer</p>
-    <h1>The seam between two islands is a <em>maritime boundary</em></h1>
-    <p class="sub">
-      The pattern that appears where two coastlines' waterlines meet is the same
-      geometric object UNCLOS calls a median line. That is not a metaphor. It is
-      also, computed the way this renderer computes it, wrong by a knowable
-      amount — and the amount has a closed form.
-    </p>
-    <p class="masthead-meta">
-      Every figure is live · <a href="interactive_explanations.html">the waterlines explainer</a> ·
-      <a href="delimitation.md">the written note</a>
-    </p>
-  </div>
-</header>
-
-<main>
-
-<!-- ============================================== I — the two readings ==== -->
-<section class="step" data-step="1">
-  <div class="wrap">
-    <p class="eyebrow centered"><span class="numeral">I</span> One picture, two vocabularies</p>
-    <h2 class="section-title">The same drawing, read twice</h2>
-    <p class="stack-lede">
-      Drag either island. Then switch the labels: nothing in the drawing changes,
-      only what the pieces of it are called.
-    </p>
-
-    <figure class="figure">
-      <div class="stage drag"><canvas id="c-readings"></canvas></div>
-      <div class="controls">
-        <div class="ctl-row between">
-          <p class="ctl-hint"><b>Drag either island.</b> The seam is sampled from the
-            distance field, not drawn from the ripples.</p>
-          <div class="segmented" id="readings-mode">
-            <button data-mode="chart" aria-pressed="true">Chart</button>
-            <button data-mode="law" aria-pressed="false">Law of the sea</button>
-          </div>
-        </div>
-        <p class="readout" id="readings-out"></p>
-      </div>
-      <figcaption id="readings-cap">Waterlines at 20 lines, and the medial axis of the water between them.</figcaption>
-    </figure>
-
-    <div class="cols">
-      <div class="prose">
-        <p>
-          A waterline is a level set of the distance to the coast. Where two
-          coasts face each other, the level sets of one collide with the level
-          sets of the other, and the collision locus is the <strong>medial
-          axis</strong> of the water — an edge of the generalised Voronoi diagram
-          of the two polygons.
-        </p>
-        <p>
-          UNCLOS builds the same object from the other end. Article 15 defines
-          the median line as the line every point of which is equidistant from
-          the nearest points on the two states' baselines. Equidistant from the
-          nearest points is the definition of a Voronoi edge.
-        </p>
-      </div>
-      <div class="prose">
-        <p>
-          Kastrisios (2014) says so directly, in a footnote to his median-line
-          construction: the median line segments <em>are</em> Voronoi edges, and
-          the basepoints and straight baselines are the generators for which the
-          plane is partitioned by nearest-neighbour rule. Kastrisios &amp; Tsoulos
-          (2016) built an automated delimitation methodology on exactly that.
-        </p>
-        <div class="aside">
-          Delaunay enters as the dual. A point equidistant from <em>three</em>
-          basepoints is the circumcentre of a Delaunay triangle — and that is
-          precisely a turning point of the boundary. Section IV builds one.
-        </div>
-      </div>
+  <header class="masthead">
+    <div class="wrap">
+      <p class="eyebrow">A finding</p>
+      <h1>The seam between two islands is a <em>maritime boundary</em></h1>
+      <p class="sub">
+        Where the waterlines of two coastlines meet, the line they make is the
+        object UNCLOS calls a median line. This is not a metaphor. Drawn on a
+        screen, the line is wrong by a known amount. The amount has a closed form.
+      </p>
+      <p class="masthead-meta">
+        Every figure is live. Move the coastlines with the mouse or touch.
+      </p>
     </div>
+  </header>
 
-    <table class="tbl corr">
-      <caption>Left: the vocabulary of <a href="methodology.md">methodology.md</a> §3. Right: the vocabulary of a delimitation report. Same objects.</caption>
-      <thead><tr><th>Waterlines</th><th>Law of the sea</th></tr></thead>
-      <tbody>
-        <tr><td>level set D(x) = d</td><td>outer limit at <em>d</em> nautical miles</td></tr>
-        <tr><td>the coastline polygon ∂Ω</td><td>the baseline — normal, straight, or bay closing line</td></tr>
-        <tr><td>medial axis of the water</td><td>strict equidistance line</td></tr>
-        <tr><td>generalised Voronoi edge</td><td>a median line segment</td></tr>
-        <tr><td>point–point bisector</td><td>straight segment between two basepoints</td></tr>
-        <tr><td>point–segment bisector (a parabola)</td><td>basepoint against a straight baseline</td></tr>
-        <tr><td>triple point of the medial axis</td><td><strong>turning point</strong> — the coordinates in the treaty annex</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
+  <main>
 
-<!-- ============================================ II — the outer limit ====== -->
-<section class="step" data-step="2">
-  <div class="wrap">
-    <p class="eyebrow centered"><span class="numeral">II</span> The closer correspondence</p>
-    <h2 class="section-title">A waterline is an outer limit</h2>
-    <p class="stack-lede">
-      Everyone reaches for the median line first. But Article 4 is the tighter
-      match: the outer limit of the territorial sea is a level set of the
-      distance to the baseline, and nothing else.
-    </p>
+    <!-- ============================================== I — the two readings ==== -->
+    <section class="step" data-step="1">
+      <div class="wrap">
+        <p class="eyebrow centered"><span class="numeral">I</span> One picture, two vocabularies</p>
+        <h2 class="section-title">The same drawing, read twice</h2>
+        <p class="stack-lede">
+          Move either island. Then change the labels. Nothing in the drawing changes.
+          Only the names of its parts change.
+        </p>
 
-    <figure class="figure">
-      <div class="stage"><canvas id="c-envelope"></canvas></div>
-      <div class="controls">
-        <div class="ctl-row between">
-          <div class="segmented" id="env-mode">
-            <button data-mode="arcs" aria-pressed="true">Envelope of arcs</button>
-            <button data-mode="replica" aria-pressed="false">Replica line</button>
-            <button data-mode="zones" aria-pressed="false">12 · 24 · 36 · 48 M</button>
-          </div>
-          <div class="key">
-            <span><i style="background:#2f6f7e"></i> limit</span>
-            <span><i style="background:#a3402c"></i> replica</span>
-            <span><i class="dot" style="background:#2b5f8a"></i> controlling basepoint</span>
-          </div>
-        </div>
-        <div class="ctl-row">
-          <div class="field">
+        <figure class="figure">
+          <div class="stage drag"><canvas id="c-readings"></canvas></div>
+          <div class="controls">
             <div class="ctl-row between">
-              <span class="ctl-label">Breadth</span>
-              <span class="ctl-value"><span id="env-r">12</span> M</span>
+              <p class="ctl-hint"><b>Move either island.</b> The seam is measured from
+                the distance field. It is not drawn from the waterlines.</p>
+              <div class="segmented" id="readings-mode">
+                <button data-mode="chart" aria-pressed="true">Chart</button>
+                <button data-mode="law" aria-pressed="false">Law of the sea</button>
+              </div>
             </div>
-            <input type="range" id="env-slider" aria-label="Zone breadth in nautical miles" min="3" max="48" value="12">
+            <p class="readout" id="readings-out"></p>
           </div>
-          <p class="readout" id="env-out"></p>
-        </div>
-      </div>
-      <figcaption>
-        The arcs are struck at the stated breadth from every point of the
-        baseline; the limit is their seawardmost envelope.
-      </figcaption>
-    </figure>
+          <figcaption id="readings-cap">Fourteen waterlines, and the medial axis of the water between them.</figcaption>
+        </figure>
 
-    <div class="cols">
-      <div class="prose">
-        <p>
-          Push the breadth slider up and the limit flattens: the farther it lies
-          from the baseline, the less of the coast's sinuosity it reflects. The
-          readout measures that directly, as limit length over straight-line
-          length.
-        </p>
-        <p>
-          What does <em>not</em> change is the count of controlling basepoints —
-          and that is worth knowing. On a polygonal baseline the controlling set
-          is exactly the seaward-convex vertices, at every breadth, because a
-          convex vertex always owns an arc of the limit however large the radius
-          and a concave one never owns any. The familiar textbook figure showing
-          fewer critical points at 4× the breadth is drawn from a <em>smooth</em>
-          coast, where the controlling set is a continuum that thins out. Which
-          model you are in changes the answer.
-        </p>
-        <p>
-          The waterline family of
-          <a href="methodology.md">methodology.md</a> §4.2 is this construction
-          drawn at every radius simultaneously. Switch to
-          <strong>12 · 24 · 36 · 48 M</strong> and the figure becomes a
-          four-line waterlines render — which is also a textbook diagram of the
-          territorial sea, contiguous zone and beyond.
-        </p>
-      </div>
-      <div class="prose">
-        <p>
-          The <strong>replica line</strong> — <em>tracé parallèle</em>, the
-          baseline copied and shifted seaward — is the method the ICJ described
-          in the Anglo-Norwegian Fisheries case. Switch to it: the shaded band is
-          the sea it gives away. A rigid copy cannot round a corner, so it runs
-          landward of the true envelope at every turn — and because the shortfall
-          is proportional to the breadth, raising the slider opens the band up.
-          IHO C-51 disputes whether the replica line satisfies Article 4 from a
-          normal baseline at all.
-        </p>
-        <div class="aside">
-          A third coincidence: the delimitation literature already contains a
-          construction called the <strong>"water-line method"</strong>, described
-          as derived from an ancient manual cartographic technique for stepping a
-          line off a coast. That is the same engraving practice this repository
-          reimplements.
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- =============================================== III — the bisectors ==== -->
-<section class="step" data-step="3">
-  <div class="wrap">
-    <p class="eyebrow centered"><span class="numeral">III</span> What a boundary is made of</p>
-    <h2 class="section-title">Three pieces, and only three</h2>
-    <p class="stack-lede">
-      A strict equidistance line has exactly three kinds of segment, decided by
-      what is nearest on each side. Drag the generators; the moving marker keeps
-      both of its arms the same length.
-    </p>
-
-    <figure class="figure">
-      <div class="stage drag"><canvas id="c-bisector"></canvas></div>
-      <div class="controls">
-        <div class="ctl-row between">
-          <div class="segmented" id="bis-mode">
-            <button data-mode="pp" aria-pressed="true">Point · Point</button>
-            <button data-mode="ps" aria-pressed="false">Point · Baseline</button>
-            <button data-mode="ss" aria-pressed="false">Baseline · Baseline</button>
+        <div class="cols">
+          <div class="prose">
+            <p>
+              A waterline is a line of equal distance to the coast. Think of a wave
+              that stops everywhere at the same distance from the shore: that line
+              is a waterline. Where two coasts face each other, the waterlines of
+              one meet the waterlines of the other. The line where they meet is the
+              <strong>medial axis</strong> of the water. It is an edge of the
+              generalised Voronoi diagram of the two polygons — the same "nearest
+              point wins" rule, applied to whole coastlines.
+            </p>
+            <p>
+              UNCLOS builds the same object from the other end. <a href="#src-unclos">Article 15</a> defines
+              the median line. Every point of the median line is equidistant from
+              the nearest points on the two states' baselines. "Equidistant from the
+              nearest points" is the definition of a Voronoi edge.
+            </p>
           </div>
-          <p class="ctl-hint"><b>Drag the blue handles.</b></p>
-        </div>
-        <p class="readout" id="bis-out"></p>
-      </div>
-      <figcaption id="bis-cap"></figcaption>
-    </figure>
-
-    <div class="prose single">
-      <p>
-        Two basepoints give a straight perpendicular bisector. Two straight
-        baselines give a straight angle bisector. A basepoint against a straight
-        baseline gives a <strong>parabola</strong> — the basepoint is the focus,
-        the baseline the directrix — and this is the case practitioners have to
-        watch, because if you only take the endpoints of the straight baseline
-        and skip the densification, you get a straight line where the law wants a
-        curve, and quietly hand away sea.
-      </p>
-      <p>
-        Every one of these is a piece of the medial axis. The waterlines renderer
-        produces all three for free, because it never constructs them: it
-        measures distance and lets the collisions fall where they fall.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- ================================================ IV — the median line == -->
-<section class="step" data-step="4">
-  <div class="wrap">
-    <p class="eyebrow centered"><span class="numeral">IV</span> The construction, live</p>
-    <h2 class="section-title">Turning points are circumcentres</h2>
-    <p class="stack-lede">
-      Two coasts, their basepoints, and the strict equidistance line between
-      them. Turn on the dual and every turning point grows the empty circle that
-      proves it is one.
-    </p>
-
-    <figure class="figure">
-      <div class="stage drag"><canvas id="c-median"></canvas></div>
-      <div class="controls">
-        <div class="ctl-row between">
-          <div class="segmented" id="med-mode">
-            <button data-mode="line" aria-pressed="true">Strict line</button>
-            <button data-mode="control" aria-pressed="false">Controlling points</button>
-            <button data-mode="dual" aria-pressed="false">Delaunay dual</button>
-            <button data-mode="simple" aria-pressed="false">Simplified</button>
+          <div class="prose">
+            <p>
+              <a href="#src-kastrisios-2014">Kastrisios (2014)</a> states this in a footnote to his median-line
+              construction. The median line segments <em>are</em> Voronoi edges. The
+              basepoints and straight baselines are the generators. The plane is
+              divided by the nearest-neighbour rule. <a href="#src-kastrisios-tsoulos-2016">Kastrisios &amp; Tsoulos
+                (2016)</a>
+              used this idea to build an automated delimitation method.
+            </p>
+            <div class="aside">
+              Delaunay enters as the dual. A point equidistant from <em>three</em>
+              basepoints is the circumcentre of a Delaunay triangle. That point is
+              also a turning point of the boundary. Section IV shows one.
+            </div>
           </div>
-          <button class="toggle" id="med-rock" aria-pressed="false">Add one rock</button>
         </div>
-        <div class="ctl-row">
-          <p class="ctl-hint"><b>Drag any basepoint.</b> In <b>Delaunay dual</b>, sweep
-            the pointer to walk the construction along the boundary. Frame is 400 km wide.</p>
-        </div>
-        <p class="readout" id="med-out"></p>
-      </div>
-      <figcaption id="med-cap"></figcaption>
-    </figure>
 
-    <div class="cols">
-      <div class="prose">
-        <p>
-          Each stretch of the line is controlled by one basepoint on each coast.
-          Where control changes hands, the line kinks — and at that kink the
-          point is equidistant from <em>three</em> basepoints at once, so a
-          circle centred there through all three encloses no other basepoint.
-          That empty-circumcircle test is the Delaunay condition, and it is
-          exactly the check a delimitation expert performs to verify a candidate
-          turning point.
-        </p>
-        <p>
-          Press <strong>Add one rock</strong>. A single feature, small enough
-          that this repository's own level-of-detail pyramid would discard it,
-          takes control of the middle of the boundary and moves it. The readout
-          gives the sea it transfers.
-        </p>
+        <table class="tbl corr">
+          <caption>Left: the words of the waterlines method. Right: the words of a delimitation report. Same objects.
+          </caption>
+          <thead>
+            <tr>
+              <th>Waterlines</th>
+              <th>Law of the sea</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>level set D(x) = d</td>
+              <td>outer limit at <em>d</em> nautical miles</td>
+            </tr>
+            <tr>
+              <td>the coastline polygon ∂Ω</td>
+              <td>the baseline — normal, straight, or bay closing line</td>
+            </tr>
+            <tr>
+              <td>medial axis of the water</td>
+              <td>strict equidistance line</td>
+            </tr>
+            <tr>
+              <td>generalised Voronoi edge</td>
+              <td>a median line segment</td>
+            </tr>
+            <tr>
+              <td>point–point bisector</td>
+              <td>straight segment between two basepoints</td>
+            </tr>
+            <tr>
+              <td>point–segment bisector (a parabola)</td>
+              <td>basepoint against a straight baseline</td>
+            </tr>
+            <tr>
+              <td>triple point of the medial axis</td>
+              <td><strong>turning point</strong> — the coordinates in the treaty annex</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="prose">
-        <p>
-          This is why basepoint selection is a legal act and not a geometric
-          one. Stage one of the ICJ's three-stage method
-          (<em>Black Sea</em>, 2009) is choosing "the most appropriate base
-          points"; courts have discarded them — Serpents' Island,
-          Qit'at Jaradah — precisely because one rock should not carry a
-          boundary.
+    </section>
+
+    <!-- ============================================ II — the outer limit ====== -->
+    <section class="step" data-step="2">
+      <div class="wrap">
+        <p class="eyebrow centered"><span class="numeral">II</span> The closer match</p>
+        <h2 class="section-title">A waterline is an outer limit</h2>
+        <p class="stack-lede">
+          Most readers think of the median line first. <a href="#src-unclos">Article 4</a> is the better
+          match. The outer limit of the territorial sea is a line of equal distance
+          to the baseline. It is nothing else.
         </p>
-        <div class="aside warn">
-          <strong>Where this renderer fails.</strong>
-          <a href="../README.md">README</a>: <em>"Very small islands are dropped
-          as you zoom out."</em> In cartography that is a sensible
-          simplification. Here it silently deletes the feature that decides the
-          answer.
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- ================================================ V — the finding ======= -->
-<section class="step" data-step="5">
-  <div class="wrap">
-    <p class="eyebrow centered"><span class="numeral">V</span> The finding</p>
-    <h2 class="section-title">Why this seam is not that boundary</h2>
-    <p class="stack-lede">
-      Everything above is exact — in the plane. This renderer does not work in
-      the plane. It works in Web Mercator pixels, and the difference is
-      systematic, one-directional, and has a closed form.
-    </p>
-
-    <figure class="figure">
-      <div class="stage"><canvas id="c-mercator"></canvas></div>
-      <div class="controls">
-        <div class="ctl-row">
-          <div class="field">
+        <figure class="figure">
+          <div class="stage"><canvas id="c-envelope"></canvas></div>
+          <div class="controls">
             <div class="ctl-row between">
-              <span class="ctl-label">Latitude of the strait</span>
-              <span class="ctl-value"><span id="merc-lat">10</span>°</span>
+              <div class="segmented" id="env-mode">
+                <button data-mode="arcs" aria-pressed="true">Envelope of arcs</button>
+                <button data-mode="replica" aria-pressed="false">Replica line</button>
+                <button data-mode="zones" aria-pressed="false">12 · 24 · 36 · 48 M</button>
+              </div>
+              <div class="ctl-row">
+                <button class="toggle" id="env-sweep" aria-pressed="true">Sweep arcs</button>
+                <div class="key">
+                  <span><i style="background:#2f6f7e"></i> limit</span>
+                  <span><i style="background:#a3402c"></i> replica</span>
+                  <span><i class="dot" style="background:#2b5f8a"></i> controlling basepoint</span>
+                </div>
+              </div>
             </div>
-            <input type="range" id="merc-lat-slider" aria-label="Mid latitude in degrees" min="0" max="75" value="10">
+            <div class="ctl-row">
+              <div class="field">
+                <div class="ctl-row between">
+                  <span class="ctl-label">Breadth</span>
+                  <span class="ctl-value"><span id="env-r">12</span> M</span>
+                </div>
+                <input type="range" id="env-slider" aria-label="Zone breadth in nautical miles" min="3" max="48"
+                  value="12">
+              </div>
+              <div class="field" id="env-speed-field">
+                <div class="ctl-row between">
+                  <span class="ctl-label">Sweep speed</span>
+                  <span class="ctl-value"><span id="env-spd">5</span></span>
+                </div>
+                <input type="range" id="env-speed" aria-label="Sweep speed" min="1" max="10" value="5">
+              </div>
+              <p class="readout" id="env-out"></p>
+            </div>
           </div>
-          <div class="field">
+          <figcaption>
+            Watch the sweep: an arm turns at each point of the baseline, left to
+            right, and draws its arc. The limit is the seawardmost edge of all the
+            arcs.
+          </figcaption>
+        </figure>
+
+        <div class="cols">
+          <div class="prose">
+            <p>
+              Move the breadth slider up. The limit flattens. The farther the limit
+              lies from the baseline, the less it shows the curves of the coast. The
+              readout shows this as a number: the length of the limit divided by the
+              straight distance across the figure.
+            </p>
+            <p>
+              Only the corners that stick out seaward matter. An arc is drawn from
+              every point of the baseline, and the limit is the seawardmost of all
+              those arcs. An arc from a seaward corner reaches the outside. An arc
+              from a landward corner is always covered by another. So the
+              controlling set is exactly the seaward-convex corners — and it does
+              <em>not</em> change with the breadth.
+            </p>
+            <p>
+              The common textbook picture shows fewer controlling points at four
+              times the breadth. That picture is drawn from a <em>smooth</em> coast,
+              where the controlling set is a line that thins out. On a straight-lined
+              baseline the corners never thin out. The model changes the answer.
+            </p>
+            <p>
+              This construction, drawn at every radius at once, is the family of
+              waterlines. Switch to <strong>12 · 24 · 36 · 48 M</strong>. The figure
+              becomes a four-line waterlines picture. It is also the textbook
+              picture of the territorial sea, the contiguous zone, and beyond.
+            </p>
+          </div>
+          <div class="prose">
+            <p>
+              The <strong>replica line</strong> is the baseline copied and moved
+              seaward. In French it is the <em>tracé parallèle</em>. The ICJ
+              described this method in the <a href="#src-fisheries-1951">Anglo-Norwegian Fisheries case</a>. Switch to
+              it. The shaded band is the sea it gives away. A rigid copy cannot turn
+              a corner. It runs landward of the true envelope at every corner. The
+              shortfall is proportional to the breadth. Move the slider up and the
+              band opens. <a href="#src-ihoc51">IHO C-51</a> doubts whether the replica line satisfies Article
+              4 from a normal baseline at all.
+            </p>
+            <div class="aside">
+              There is a third match. The delimitation literature has a method called
+              the <strong>"water-line method"</strong>. It is described as a manual
+              cartographic technique for stepping a line off a coast. That is the
+              same technique shown here.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================== III — the bisectors ==== -->
+    <section class="step" data-step="3">
+      <div class="wrap">
+        <p class="eyebrow centered"><span class="numeral">III</span> What a boundary is made of</p>
+        <h2 class="section-title">Three pieces, and only three</h2>
+        <p class="stack-lede">
+          A strict equidistance line has exactly three kinds of segment. The kind
+          depends on what is nearest on each side. Move the blue handles. The moving
+          marker keeps both arms the same length.
+        </p>
+
+        <figure class="figure">
+          <div class="stage drag"><canvas id="c-bisector"></canvas></div>
+          <div class="controls">
             <div class="ctl-row between">
-              <span class="ctl-label">Coast separation</span>
-              <span class="ctl-value"><span id="merc-sep">4.0</span>°</span>
+              <div class="segmented" id="bis-mode">
+                <button data-mode="pp" aria-pressed="true">Point · Point</button>
+                <button data-mode="ps" aria-pressed="false">Point · Baseline</button>
+                <button data-mode="ss" aria-pressed="false">Baseline · Baseline</button>
+              </div>
+              <p class="ctl-hint"><b>Drag the blue handles.</b></p>
             </div>
-            <input type="range" id="merc-sep-slider" aria-label="Separation between coasts in degrees" min="10" max="120" value="40">
+            <p class="readout" id="bis-out"></p>
+          </div>
+          <figcaption id="bis-cap"></figcaption>
+        </figure>
+
+        <div class="prose single">
+          <p>
+            Two basepoints give a straight line: the perpendicular bisector. Two
+            straight baselines give a straight line: the angle bisector. A basepoint
+            against a straight baseline gives a <strong>parabola</strong>. The
+            basepoint is the focus. The baseline is the directrix. This is the case
+            to watch. If you take only the two ends of the straight baseline, you
+            draw a straight line where the law wants a curve. You quietly give away
+            sea.
+          </p>
+          <p>
+            All three are pieces of the medial axis. The waterlines method makes all
+            three without drawing any of them. It measures distance. The lines fall
+            where the distances become equal.
+          </p>
+          <p>
+            Watch the readout as the marker moves. The two arms stay the same length:
+            d(A) and d(B) match to a fraction of a pixel. That is the whole method,
+            at one point at a time.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ IV — the median line == -->
+    <section class="step" data-step="4">
+      <div class="wrap">
+        <p class="eyebrow centered"><span class="numeral">IV</span> The construction, live</p>
+        <h2 class="section-title">Turning points are circumcentres</h2>
+        <p class="stack-lede">
+          Two coasts, their basepoints, and the strict equidistance line between
+          them. Turn on the Delaunay dual. Each turning point grows the empty circle
+          that proves it is a turning point.
+        </p>
+
+        <figure class="figure">
+          <div class="stage drag"><canvas id="c-median"></canvas></div>
+          <div class="controls">
+            <div class="ctl-row between">
+              <div class="segmented" id="med-mode">
+                <button data-mode="line" aria-pressed="true">Strict line</button>
+                <button data-mode="control" aria-pressed="false">Controlling points</button>
+                <button data-mode="dual" aria-pressed="false">Delaunay dual</button>
+                <button data-mode="simple" aria-pressed="false">Simplified</button>
+              </div>
+              <button class="toggle" id="med-rock" aria-pressed="false">Add one rock</button>
+            </div>
+            <div class="ctl-row">
+              <div class="field" id="med-zoom-field">
+                <div class="ctl-row between">
+                  <span class="ctl-label">Detail · zoom</span>
+                  <span class="ctl-value"><span id="med-zoom">16</span></span>
+                </div>
+                <input type="range" id="med-zoom-slider" aria-label="Map zoom, or level of detail" min="5" max="20"
+                  value="16">
+              </div>
+              <p class="ctl-hint"><b>Move any basepoint.</b> In <b>Delaunay dual</b>, move
+                the pointer to walk the construction along the boundary. The frame is 400 km wide.
+                <b>Zoom out</b> — the small island disappears.
+              </p>
+            </div>
+            <p class="readout" id="med-out"></p>
+          </div>
+          <figcaption id="med-cap"></figcaption>
+        </figure>
+
+        <div class="cols">
+          <div class="prose">
+            <p>
+              One basepoint on each coast controls each stretch of the line. Where
+              control changes hands, the line turns. At that turn, the point is
+              equidistant from <em>three</em> basepoints at once. A circle centred
+              there, through all three, encloses no other basepoint. An empty circle
+              proves the turn: if another basepoint lay inside, that basepoint would
+              be nearer and would have taken control. This empty-circle test is the
+              Delaunay condition. It is also the check a delimitation expert makes
+              to verify a candidate turning point.
+            </p>
+            <p>
+              Press <strong>Add one rock</strong>. One small feature takes control of
+              the middle of the boundary and moves it. The readout shows how much sea
+              it transfers. Then drag <strong>Detail · zoom</strong> down. The rock
+              shrinks, and below a cutoff it disappears — and the boundary silently
+              snaps back to ignoring it.
+            </p>
+          </div>
+          <div class="prose">
+            <p>
+              This is why basepoint selection is a legal act, not a geometric one.
+              The first stage of the ICJ's three-stage method (<em><a href="#src-blacksea-2009">Black Sea</a></em>,
+              2009) is to choose "the most appropriate base points". Courts have
+              rejected basepoints. Two examples are <a href="#src-blacksea-2009">Serpents' Island</a> and <a
+                href="#src-qatar-bahrain-2001">Qit'at
+                Jaradah</a>. One rock should not carry a boundary.
+            </p>
+            <div class="aside warn">
+              <strong>Where the screen method fails.</strong>
+              Very small islands disappear as you zoom out. In cartography this is a
+              sensible simplification. On a screen it silently deletes the feature
+              that decides the answer. Above, add the rock, then drag
+              <strong>Detail · zoom</strong> down and watch the boundary snap back.
+            </div>
           </div>
         </div>
-        <div class="ctl-row between">
-          <div class="key">
-            <span><i style="background:#3b7d74"></i> true median — equal ground distance</span>
-            <span><i style="background:#a3402c"></i> pixel median — what this renderer draws</span>
+      </div>
+    </section>
+
+    <!-- ================================================ V — the finding ======= -->
+    <section class="step" data-step="5">
+      <div class="wrap">
+        <p class="eyebrow centered"><span class="numeral">V</span> The finding</p>
+        <h2 class="section-title">Why this seam is not that boundary</h2>
+        <p class="stack-lede">
+          Everything above is exact in the plane. A screen is not the plane. It is a
+          Web Mercator map made of pixels. On that map, distance in pixels is not
+          distance on the ground. The difference is systematic, one-directional,
+          and it has a closed form.
+        </p>
+
+        <figure class="figure">
+          <div class="stage"><canvas id="c-mercator"></canvas></div>
+          <div class="controls">
+            <div class="ctl-row">
+              <div class="field">
+                <div class="ctl-row between">
+                  <span class="ctl-label">Latitude of the strait</span>
+                  <span class="ctl-value"><span id="merc-lat">45</span>°</span>
+                </div>
+                <input type="range" id="merc-lat-slider" aria-label="Mid latitude in degrees" min="0" max="75"
+                  value="45">
+              </div>
+              <div class="field">
+                <div class="ctl-row between">
+                  <span class="ctl-label">Coast separation</span>
+                  <span class="ctl-value"><span id="merc-sep">4.0</span>°</span>
+                </div>
+                <input type="range" id="merc-sep-slider" aria-label="Separation between coasts in degrees" min="10"
+                  max="120" value="40">
+              </div>
+            </div>
+            <div class="ctl-row between">
+              <div class="key">
+                <span><i style="background:#3b7d74"></i> true median — equal kilometres</span>
+                <span><i style="background:#a3402c"></i> screen seam — equal pixels</span>
+              </div>
+            </div>
+            <p class="readout" id="merc-out"></p>
+          </div>
+          <figcaption>
+            The map shows a strait between two coasts. The panel on the right
+            magnifies the strip around the seam until the two answers separate.
+          </figcaption>
+        </figure>
+
+        <div class="prose single">
+          <p>
+            Every figure on this page finds the seam the same way. It measures the
+            distance from a point to each coast. It draws the point where the two
+            distances are equal. Section V asks one question: distance in what units?
+          </p>
+          <p>
+            The law uses kilometres. A boundary point must be the same real-world
+            distance from both baselines. That point is the <strong>true
+              median</strong>, at the mid-latitude.
+          </p>
+          <p>
+            A screen has no kilometres. It has pixels. It draws the seam where the
+            distance <em>in pixels</em> to each coast is equal. Call that the
+            <strong>screen seam</strong>.
+          </p>
+          <p>
+            The two answers are not the same. On a Web Mercator map the scale
+            changes with latitude: one degree of latitude is more pixels near the
+            pole. When the two coasts sit at different latitudes, "equal pixels" and
+            "equal kilometres" disagree.
+          </p>
+          <p>
+            Take two coasts running east–west at mid-latitude φ<sub>m</sub>, with the
+            coasts at φ<sub>m</sub>&nbsp;±&nbsp;<em>h</em>. The true median sits at
+            the mid-<em>latitude</em>. The screen seam sits at the
+            mid-<em>ordinate</em>: the vertical position halfway between the two
+            coasts in pixels. Because one degree is more pixels near the pole, that
+            halfway position is not the mid-latitude. It lies toward the
+            higher-latitude coast. The shift is:
+          </p>
+          <p class="formula">
+            Δφ &nbsp;≈&nbsp; ½&nbsp;tan(φ<sub>m</sub>)&nbsp;<em>h</em>²
+            &nbsp;&nbsp;&nbsp;⟹&nbsp;&nbsp;&nbsp;
+            Δ<em>s</em> &nbsp;≈&nbsp; ½&nbsp;<em>R</em>&nbsp;tan(φ<sub>m</sub>)&nbsp;<em>h</em>²
+            <small>φ<sub>m</sub> the mid-latitude, <em>h</em> the half-separation in radians, <em>R</em> the Earth's
+              radius</small>
+          </p>
+          <p>
+            The screen seam is not the result of a careless measurement. It is the
+            correct answer to a different question.
+          </p>
+
+          <ul class="rules">
+            <li>
+              <strong>The bias points poleward, always.</strong>
+              Δφ is positive in the north and symmetric in the south. The screen
+              seam always sits nearer the higher-latitude coast. The bias is
+              systematic, not noise. It favours the same side every time.
+            </li>
+            <li>
+              <strong>It vanishes at the equator and grows as tan φ.</strong>
+              At the equator the effect is zero. It grows as you move poleward.
+              Tropical coastlines hide it. High-latitude coastlines do not.
+            </li>
+            <li>
+              <strong>It grows with the square of the separation.</strong>
+              Narrow straits are nearly safe. Wide opposite-coast delimitations are
+              not.
+            </li>
+          </ul>
+
+          <table class="tbl">
+            <caption>
+              Δ<em>s</em> for a 4° separation, computed from <em>y</em>(φ) exactly,
+              not from the expansion. Published turning points are given to a
+              fraction of an arc-second. That is about 3 m.
+            </caption>
+            <thead>
+              <tr>
+                <th>Mid-latitude</th>
+                <th>Example</th>
+                <th class="num">Δs</th>
+                <th class="num">vs. 3 m</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>0°</td>
+                <td>equatorial</td>
+                <td class="num">0 m</td>
+                <td class="num">—</td>
+              </tr>
+              <tr class="hi">
+                <td>10°</td>
+                <td>Nusantara</td>
+                <td class="bad">0.69 km</td>
+                <td class="bad">230×</td>
+              </tr>
+              <tr>
+                <td>40°</td>
+                <td>Aegean</td>
+                <td class="bad">3.3 km</td>
+                <td class="bad">1 100×</td>
+              </tr>
+              <tr>
+                <td>60°</td>
+                <td>North Atlantic</td>
+                <td class="bad">6.7 km</td>
+                <td class="bad">2 200×</td>
+              </tr>
+              <tr>
+                <td>72°</td>
+                <td>Barents Sea</td>
+                <td class="bad">11.9 km</td>
+                <td class="bad">4 000×</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="aside">
+            Raster resolution sets a second limit. A 500 km scene on a 1920 pixel
+            screen gives about 260 m per pixel. The seam is known to ±130 m at best.
+            The pixel-grid path adds its own error. At 10° this limit is the same
+            size as the Mercator bias. Fixing one without the other buys nothing.
           </div>
         </div>
-        <p class="readout" id="merc-out"></p>
       </div>
-      <figcaption>
-        Two coasts idealised as parallels, so that only the scale factor is in
-        play. The inset magnifies the gap; both views carry their own scale bar.
-      </figcaption>
-    </figure>
+    </section>
 
-    <div class="prose single">
-      <p>
-        Mercator is conformal, so the distance field is locally isotropic and the
-        seam <em>looks</em> right anywhere you care to inspect it. But the scale
-        factor <em>k</em>(φ)&nbsp;=&nbsp;sec&nbsp;φ varies with latitude, so a
-        locus of equal <strong>pixel</strong> distance is not a locus of equal
-        <strong>ground</strong> distance the moment the two coasts sit at
-        different latitudes.
-      </p>
-      <p>
-        For two coasts running east–west at φ<sub>m</sub>&nbsp;±&nbsp;<em>h</em>,
-        the Mercator ordinate
-        <em>y</em>(φ)&nbsp;=&nbsp;ln&nbsp;tan(π/4&nbsp;+&nbsp;φ/2) has
-        <em>y</em>′&nbsp;=&nbsp;sec&nbsp;φ and
-        <em>y</em>″&nbsp;=&nbsp;sec&nbsp;φ&nbsp;tan&nbsp;φ. The true median lies
-        at the mid-<em>latitude</em>; the pixel median lies at the
-        mid-<em>ordinate</em>. Expanding about φ<sub>m</sub>:
-      </p>
-      <p class="formula">
-        Δφ &nbsp;≈&nbsp; ½&nbsp;tan(φ<sub>m</sub>)&nbsp;<em>h</em>²
-        &nbsp;&nbsp;&nbsp;⟹&nbsp;&nbsp;&nbsp;
-        Δ<em>s</em> &nbsp;≈&nbsp; ½&nbsp;<em>R</em>&nbsp;tan(φ<sub>m</sub>)&nbsp;<em>h</em>²
-        <small>φ<sub>m</sub> the mid-latitude, <em>h</em> the half-separation in radians, <em>R</em> the Earth's radius</small>
-      </p>
+    <!-- =============================================== VI — the verdict ======= -->
+    <section class="step" data-step="6">
+      <div class="wrap narrow">
+        <p class="eyebrow centered"><span class="numeral">VI</span> What follows</p>
+        <h2 class="section-title">Not a delimitation tool. Three real uses.</h2>
 
-      <ul class="rules">
-        <li>
-          <strong>The bias is poleward, always.</strong>
-          Δφ is positive in the north and symmetric in the south: the pixel
-          median always sits nearer the higher-latitude coast. It is a systematic
-          bias, not noise — it favours the same state every time you run it.
-        </li>
-        <li>
-          <strong>It vanishes at the equator and grows as tan φ.</strong>
-          Which is exactly why the effect is invisible in the Nusantara renders
-          that motivated this whole repository. Generalising from them would have
-          been the mistake.
-        </li>
-        <li>
-          <strong>It is quadratic in the separation.</strong>
-          Narrow straits are nearly safe. Wide opposite-coast delimitations are
-          not.
-        </li>
-      </ul>
+        <div class="prose single">
+          <p>
+            Delimitation needs coordinates on an ellipsoid. The waterlines method
+            makes a picture. The result is a raster, not a vector. There is no path
+            to export, hit-test, or label along. A maritime boundary is a list of
+            coordinates in a treaty annex. To close the gap, you would replace the
+            metric, the output, the generators, and the control of detail. That is a
+            different program that shares one theorem.
+          </p>
+          <p>The geometry is the same geometry. Three uses follow.</p>
 
-      <table class="tbl">
-        <caption>
-          Δ<em>s</em> for a 4° separation, computed from <em>y</em>(φ) exactly
-          rather than from the expansion. Published turning points are given to
-          a fraction of an arc-second — order 3 m.
-        </caption>
-        <thead><tr><th>Mid-latitude</th><th>Example</th><th class="num">Δs</th><th class="num">vs. 3 m</th></tr></thead>
-        <tbody>
-          <tr><td>0°</td><td>equatorial</td><td class="num">0 m</td><td class="num">—</td></tr>
-          <tr class="hi"><td>10°</td><td>Nusantara</td><td class="bad">0.69 km</td><td class="bad">230×</td></tr>
-          <tr><td>40°</td><td>Aegean</td><td class="bad">3.3 km</td><td class="bad">1 100×</td></tr>
-          <tr><td>60°</td><td>North Atlantic</td><td class="bad">6.7 km</td><td class="bad">2 200×</td></tr>
-          <tr><td>72°</td><td>Barents Sea</td><td class="bad">11.9 km</td><td class="bad">4 000×</td></tr>
-        </tbody>
-      </table>
+          <ul class="rules">
+            <li>
+              <strong>Sensitivity, live.</strong>
+              Strict equidistance gives too many turning points. Each one needs
+              simplification and negotiation. A distance field that redraws while
+              you move a candidate basepoint shows which coastal features control
+              which stretch. It does this in real time. It feeds an exact
+              computation. It does not replace one.
+            </li>
+            <li>
+              <strong>Teaching.</strong>
+              Sections II and III are correct pictures of the envelope of arcs. They
+              are also correct pictures of the point–point, point–segment, and
+              segment–segment structure of a boundary. This page exists because that
+              turned out to be the most useful part of the finding.
+            </li>
+            <li>
+              <strong>Coarse to fine.</strong>
+              Use the raster field to find candidate controlling basepoints cheaply.
+              Then give only those few to exact geodesic computation.
+            </li>
+          </ul>
 
-      <div class="aside">
-        Raster resolution puts a second floor under this. A 500 km scene on a
-        1920 px viewport is ~260 m per pixel, so the seam is localised to ±130 m
-        at best, before the jump-flooding approximation of the GL path adds its
-        own error. At 10° that floor is the same order as the Mercator bias
-        itself — fixing one without the other buys nothing.
+          <h3 style="margin-top:38px">What must change</h3>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th></th>
+                <th>now</th>
+                <th>required</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>metric</td>
+                <td>Web Mercator pixels</td>
+                <td>geodesic on WGS84</td>
+              </tr>
+              <tr>
+                <td>output</td>
+                <td>raster</td>
+                <td>turning-point coordinate list</td>
+              </tr>
+              <tr>
+                <td>generators</td>
+                <td>whole coastline polygon</td>
+                <td>selected legal basepoints, with provenance per segment</td>
+              </tr>
+              <tr>
+                <td>detail</td>
+                <td>small islands drop as you zoom out</td>
+                <td>every rock, islet and low-tide elevation kept</td>
+              </tr>
+              <tr>
+                <td>accuracy</td>
+                <td>~10² m</td>
+                <td>~10⁰ m</td>
+              </tr>
+              <tr>
+                <td>source</td>
+                <td>Natural Earth coastline</td>
+                <td>charted low-water line at a declared datum</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="end">
+    <div class="wrap">
+      <h2>Sources</h2>
+      <p class="lede" style="margin:0 0 30px">Retrieved August 2026.</p>
+      <div class="credits">
+        <ul>
+          <li id="src-kastrisios-2014"><strong>Kastrisios, C. (2014).</strong> <em>Methods of Maritime Outer Limits
+              Delimitation.</em>
+            Nausivios Chora 5, E-3–E-24.
+            <a href="https://nausivios.snd.edu.gr/docs/2014E1.pdf">PDF</a> —
+            the envelope of arcs, the replica line, the median-line construction, and the Voronoi footnote.
+          </li>
+          <li id="src-kastrisios-tsoulos-2016"><strong>Kastrisios, C. &amp; Tsoulos, L. (2016).</strong> <em>A cohesive
+              methodology for the delimitation
+              of maritime zones and boundaries.</em>
+            Ocean &amp; Coastal Management.
+            <a href="https://www.sciencedirect.com/science/article/abs/pii/S0964569116301247">DOI</a>
+          </li>
+          <li id="src-gold-1997"><strong>Gold, Remmele &amp; Roos (1997).</strong> <em>Voronoi Methods in GIS.</em>
+            Algorithmic Foundations of GIS, Springer, 21–35. Cited via <a href="#src-kastrisios-2014">Kastrisios
+              (2014)</a>.</li>
+          <li id="src-fisheries-1951"><strong>ICJ (1951).</strong> <em>Fisheries (United Kingdom v. Norway).</em>
+            Judgment of 18 December 1951.
+            <a href="https://www.icj-cij.org/case/5">ICJ</a> — the replica line, <em>tracé parallèle</em>.
+          </li>
+          <li id="src-blacksea-2009"><strong>ICJ (2009).</strong> <em>Maritime Delimitation in the Black Sea (Romania v.
+              Ukraine).</em>
+            Judgment of 3 February 2009.
+            <a href="https://www.icj-cij.org/case/132">ICJ</a> — the three-stage method; Serpents' Island.
+          </li>
+          <li id="src-qatar-bahrain-2001"><strong>ICJ (2001).</strong> <em>Maritime Delimitation and Territorial
+              Questions between Qatar and Bahrain.</em>
+            Judgment of 16 March 2001.
+            <a href="https://www.icj-cij.org/case/87">ICJ</a> — Qit'at Jaradah.
+          </li>
+          <li id="src-icj-2021"><strong>ICJ (2021).</strong> <em>Maritime Delimitation in the Indian Ocean (Somalia v.
+              Kenya).</em>
+            <a href="https://www.icj-cij.org/node/106073">Summary</a> — the three-stage method.
+          </li>
+          <li id="src-rong-2006"><strong>Rong, G. &amp; Tan, T.-S. (2006).</strong> <em>Jump flooding in GPU…</em> I3D
+            2006.
+            <a href="https://www.comp.nus.edu.sg/~tants/jfa/i3d06-submitted.pdf">PDF</a>
+          </li>
+          <li id="src-ihoc51"><strong>IHO (2014).</strong> <em>Manual on Technical Aspects of the UN Convention on the
+              Law of the Sea (TALOS),</em> C-51, 5th ed.
+            <a href="https://iho.int/en/talos">IHO</a>
+          </li>
+          <li id="src-unclos"><strong>UNCLOS</strong>, arts. 4, 7, 13, 15, 74, 83.
+            <a href="https://www.un.org/depts/los/convention_agreements/texts/unclos/unclos_e.pdf">Text</a>
+          </li>
+        </ul>
       </div>
     </div>
-  </div>
-</section>
+  </footer>
 
-<!-- =============================================== VI — the verdict ======= -->
-<section class="step" data-step="6">
-  <div class="wrap narrow">
-    <p class="eyebrow centered"><span class="numeral">VI</span> What follows</p>
-    <h2 class="section-title">Not a delimitation tool. Three real uses.</h2>
+  <script>
+    'use strict';
 
-    <div class="prose single">
-      <p>
-        Delimitation needs coordinates on an ellipsoid; this produces a picture.
-        <a href="methodology.md">methodology.md</a> §4.1 is already explicit
-        about it — <em>"the result is a raster, not a vector; there is no path to
-        export, hit-test, or label along"</em> — and a maritime boundary is a
-        coordinate list in a treaty annex. Closing the gap means replacing the
-        metric, the output stage, the generator model and the level-of-detail
-        pyramid: a different program that happens to share a theorem.
-      </p>
-      <p>But the geometry is genuinely the same geometry, and three uses follow from that.</p>
+    /* ========================================================================= *
+     *  Shared machinery — a small figure runner and palette used by every figure
+     *  below, so all figures behave the same under resize and scroll.
+     * ========================================================================= */
 
-      <ul class="rules">
-        <li>
-          <strong>Sensitivity, at 60 fps.</strong>
-          The standing complaint about strict equidistance is that it yields
-          impractically many turning points needing simplification and
-          negotiation. A distance field that redraws while you drag a candidate
-          basepoint — section IV — shows which coastal features control which
-          stretch, in the room, in real time. It feeds an exact computation. It
-          does not replace one.
-        </li>
-        <li>
-          <strong>Teaching.</strong>
-          Sections II and III are correct illustrations of the envelope of arcs
-          and of the point–point, point–segment and segment–segment structure of
-          a boundary. This page exists because that turned out to be the most
-          useful thing in the finding.
-        </li>
-        <li>
-          <strong>Coarse to fine.</strong>
-          Use the raster field to find candidate controlling basepoints cheaply,
-          then hand only those few to exact geodesic computation.
-        </li>
-      </ul>
+    const TAU = Math.PI * 2;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      <h3 style="margin-top:38px">What would have to change</h3>
-      <table class="tbl">
-        <thead><tr><th></th><th>now</th><th>required</th></tr></thead>
-        <tbody>
-          <tr><td>metric</td><td>Web Mercator pixels</td><td>geodesic on WGS84</td></tr>
-          <tr><td>output</td><td>raster</td><td>turning-point coordinate list</td></tr>
-          <tr><td>generators</td><td>whole coastline polygon</td><td>selected legal basepoints, with provenance per segment</td></tr>
-          <tr><td>detail</td><td>LOD drops small rings</td><td>every rock, islet and low-tide elevation retained</td></tr>
-          <tr><td>accuracy</td><td>~10² m</td><td>~10⁰ m</td></tr>
-          <tr><td>source</td><td>Natural Earth coastline</td><td>charted low-water line at a declared datum</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<footer class="end">
-  <div class="wrap">
-    <h2>Sources</h2>
-    <p class="lede" style="margin:0 0 30px">Retrieved August 2026.</p>
-    <div class="credits">
-      <ul>
-        <li><strong>Kastrisios, C. (2014).</strong> <em>Methods of Maritime Outer Limits Delimitation.</em>
-          Nausivios Chora 5, E-3–E-24.
-          <a href="https://nausivios.snd.edu.gr/docs/2014E1.pdf">PDF</a> —
-          the envelope of arcs, the replica line, the median-line construction, and the Voronoi footnote.</li>
-        <li><strong>Kastrisios, C. &amp; Tsoulos, L. (2016).</strong> <em>A cohesive methodology for the delimitation of maritime zones and boundaries.</em>
-          Ocean &amp; Coastal Management.
-          <a href="https://www.sciencedirect.com/science/article/abs/pii/S0964569116301247">DOI</a></li>
-        <li><strong>Gold, Remmele &amp; Roos (1997).</strong> <em>Voronoi Methods in GIS.</em>
-          Algorithmic Foundations of GIS, Springer, 21–35. Cited via Kastrisios (2014).</li>
-        <li><strong>ICJ (2021).</strong> <em>Maritime Delimitation in the Indian Ocean (Somalia v. Kenya).</em>
-          <a href="https://www.icj-cij.org/node/106073">Summary</a> — the three-stage method.</li>
-        <li><strong>Rong, G. &amp; Tan, T.-S. (2006).</strong> <em>Jump flooding in GPU…</em> I3D 2006.
-          <a href="https://www.comp.nus.edu.sg/~tants/jfa/i3d06-submitted.pdf">PDF</a> — already reference [RT1] in the methodology.</li>
-        <li><strong>UNCLOS</strong>, arts. 4, 7, 13, 15, 74, 83.
-          <a href="https://www.un.org/depts/los/convention_agreements/texts/unclos/unclos_e.pdf">Text</a></li>
-      </ul>
-      <p class="caveat">
-        Two of the above were reachable only as abstracts. The
-        ½&nbsp;R&nbsp;tan(φ)&nbsp;h² result in section V is derived here, not
-        taken from the literature; it is a straightforward expansion and almost
-        certainly not new, but I did not find it stated anywhere. Treat it as
-        unreviewed. The written note is at
-        <a href="delimitation.md">docs/delimitation.md</a>.
-      </p>
-    </div>
-  </div>
-</footer>
-
-<script>
-'use strict';
-
-/* ========================================================================= *
- *  Shared machinery — the same figure runner and palette as the waterlines
- *  explainer, so the two pages behave identically under resize and scroll.
- * ========================================================================= */
-
-const TAU = Math.PI * 2;
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const COLOR = {
-  sea:   '#cfdcd8',
-  land:  '#efe4c8',
-  coast: '#9a8763',
-  ink:   '#6a5138',
-  teal:  '#2f6f7e',
-  navy:  '#2b5f8a',
-  green: '#3b7d74',
-  oxide: '#a3402c',
-  rule:  '#c9b894',
-};
-
-const figures = [];
-
-function figure(canvasId, build) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const state = { canvas, ctx, w: 0, h: 0, animated: false, draw: null };
-
-  state.resize = function () {
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width) return;
-    const dpr = window.devicePixelRatio || 1;
-    state.w = rect.width;
-    state.h = rect.height;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (state.draw) state.draw();
-  };
-
-  state.pointer = function (e) {
-    const rect = canvas.getBoundingClientRect();
-    const t = e.touches && e.touches[0];
-    return {
-      x: (t ? t.clientX : e.clientX) - rect.left,
-      y: (t ? t.clientY : e.clientY) - rect.top,
+    const COLOR = {
+      sea: '#cfdcd8',
+      land: '#efe4c8',
+      coast: '#9a8763',
+      ink: '#6a5138',
+      teal: '#2f6f7e',
+      navy: '#2b5f8a',
+      green: '#3b7d74',
+      oxide: '#a3402c',
+      rule: '#c9b894',
     };
-  };
 
-  figures.push(state);
-  build(state);
-  state.resize();
-  return state;
-}
+    const figures = [];
 
-/** Wire a `.segmented` group; calls back with the pressed button's data-mode. */
-function segmented(id, onChange) {
-  const root = document.getElementById(id);
-  if (!root) return;
-  root.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    [...root.querySelectorAll('button')].forEach((b) =>
-      b.setAttribute('aria-pressed', String(b === btn)));
-    onChange(btn.dataset.mode);
-  });
-}
+    function figure(canvasId, build) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const state = { canvas, ctx, w: 0, h: 0, animated: false, draw: null };
 
-/** Drag handles shared by three figures: nearest handle within `grab` px wins. */
-function draggable(f, getHandles, onMove, grab = 26) {
-  let held = null;
+      state.resize = function () {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width) return;
+        const dpr = window.devicePixelRatio || 1;
+        state.w = rect.width;
+        state.h = rect.height;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (state.draw) state.draw();
+      };
 
-  function pick(p) {
-    let best = null, bestD = grab * grab;
-    getHandles().forEach((h) => {
-      const dx = h.x - p.x, dy = h.y - p.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < bestD) { bestD = d2; best = h; }
-    });
-    return best;
-  }
+      state.pointer = function (e) {
+        const rect = canvas.getBoundingClientRect();
+        const t = e.touches && e.touches[0];
+        return {
+          x: (t ? t.clientX : e.clientX) - rect.left,
+          y: (t ? t.clientY : e.clientY) - rect.top,
+        };
+      };
 
-  const down = (e) => {
-    held = pick(f.pointer(e));
-    if (held) e.preventDefault();
-  };
-  const move = (e) => {
-    if (!held) return;
-    e.preventDefault();
-    const p = f.pointer(e);
-    onMove(held, Math.max(0, Math.min(f.w, p.x)), Math.max(0, Math.min(f.h, p.y)));
-    f.draw();
-  };
-  const up = () => { held = null; };
-
-  f.canvas.addEventListener('mousedown', down);
-  f.canvas.addEventListener('touchstart', down, { passive: false });
-  window.addEventListener('mousemove', move);
-  window.addEventListener('touchmove', move, { passive: false });
-  window.addEventListener('mouseup', up);
-  window.addEventListener('touchend', up);
-}
-
-/* ------------------------------------------------------------- geometry -- */
-
-function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
-
-/** Distance from a point to a segment, and the foot of the perpendicular. */
-function distToSegment(px, py, ax, ay, bx, by) {
-  const vx = bx - ax, vy = by - ay;
-  const len2 = vx * vx + vy * vy;
-  const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / len2)) : 0;
-  const cx = ax + vx * t, cy = ay + vy * t;
-  return { d: Math.hypot(px - cx, py - cy), cx, cy };
-}
-
-/** Nearest of a set of basepoints. Returns the distance and which one. */
-function nearestPoint(px, py, pts) {
-  let bi = 0, bd = Infinity;
-  for (let i = 0; i < pts.length; i++) {
-    const d = dist(px, py, pts[i].x, pts[i].y);
-    if (d < bd) { bd = d; bi = i; }
-  }
-  return { d: bd, i: bi, p: pts[bi] };
-}
-
-/**
- * Nearest feature on an open polyline, and *what* it was.
- *
- * A baseline is a polyline between charted points, so the thing controlling a
- * limit is either one of those points or the run of coast between two of them.
- * Section II needs to tell the two apart, because only the first kind is a
- * basepoint you would list in a submission.
- */
-function nearestFeature(px, py, pts) {
-  let bd = Infinity, res = null;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const a = pts[i], b = pts[i + 1];
-    const vx = b.x - a.x, vy = b.y - a.y;
-    const len2 = vx * vx + vy * vy;
-    const t = len2 ? Math.max(0, Math.min(1, ((px - a.x) * vx + (py - a.y) * vy) / len2)) : 0;
-    const cx = a.x + vx * t, cy = a.y + vy * t;
-    const d = Math.hypot(px - cx, py - cy);
-    if (d < bd) {
-      bd = d;
-      res = { d, cx, cy, seg: i, vertex: t <= 1e-9 ? i : t >= 1 - 1e-9 ? i + 1 : -1 };
+      figures.push(state);
+      build(state);
+      state.resize();
+      return state;
     }
-  }
-  return res;
-}
 
-/** Nearest point on a polyline. `closed` joins the last vertex to the first. */
-function nearestOnPolyline(px, py, pts, closed) {
-  let bd = Infinity, bx = 0, by = 0;
-  const n = pts.length;
-  const last = closed ? n : n - 1;
-  for (let i = 0; i < last; i++) {
-    const a = pts[i], b = pts[(i + 1) % n];
-    const r = distToSegment(px, py, a.x, a.y, b.x, b.y);
-    if (r.d < bd) { bd = r.d; bx = r.cx; by = r.cy; }
-  }
-  return { d: bd, cx: bx, cy: by };
-}
-
-/**
- * The seam, found by bisection rather than by contouring.
- *
- * Every figure here places its two generators on opposite sides of one axis,
- * which makes f = dA - dB monotone along the scan direction. Twenty-two
- * halvings then put the crossing far inside a pixel, and — unlike marching
- * squares — the result comes out already ordered, which is what section IV
- * needs in order to find where control changes hands.
- */
-function seamScan(f, from, to, lo, hi, step, vertical) {
-  const out = [];
-  for (let u = from; u <= to; u += step) {
-    const at = (v) => (vertical ? f(u, v) : f(v, u));
-    const a = at(lo);
-    if ((a > 0) === (at(hi) > 0)) { out.push(null); continue; }
-    let l = lo, r = hi;
-    for (let k = 0; k < 22; k++) {
-      const m = (l + r) / 2;
-      if ((at(m) > 0) === (a > 0)) l = m; else r = m;
-    }
-    const v = (l + r) / 2;
-    out.push(vertical ? { x: u, y: v } : { x: v, y: u });
-  }
-  return out;
-}
-
-/** Draw a point list with nulls as breaks. */
-function strokePolyline(ctx, pts, color, width, dash) {
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.setLineDash(dash || []);
-  ctx.beginPath();
-  let pen = false;
-  for (const p of pts) {
-    if (!p) { pen = false; continue; }
-    if (!pen) { ctx.moveTo(p.x, p.y); pen = true; } else ctx.lineTo(p.x, p.y);
-  }
-  ctx.stroke();
-  ctx.restore();
-}
-
-function dot(ctx, x, y, r, fill, stroke) {
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, TAU);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.4; ctx.stroke(); }
-}
-
-function label(ctx, text, x, y, color, align) {
-  ctx.save();
-  ctx.font = '600 11px ui-sans-serif, system-ui, sans-serif';
-  ctx.textAlign = align || 'left';
-  ctx.textBaseline = 'middle';
-  const m = ctx.measureText(text);
-  const pad = 4;
-  const wBox = m.width + pad * 2;
-  const x0 = align === 'center' ? x - wBox / 2 : align === 'right' ? x - wBox : x;
-  ctx.fillStyle = 'rgba(244,236,216,0.86)';
-  ctx.fillRect(x0, y - 8, wBox, 16);
-  ctx.fillStyle = color;
-  ctx.fillText(text, align === 'center' ? x : align === 'right' ? x - pad : x + pad, y);
-  ctx.restore();
-}
-
-function clearSea(ctx, w, h) {
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = 1;
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = COLOR.sea;
-  ctx.fillRect(0, 0, w, h);
-}
-
-/* -------------------------------------------------- waterlines, for real -- */
-/* Section I draws the actual technique, not a lookalike: stroke a fat pen,
-   erase its middle. Same identity as methodology.md 4.1.                    */
-
-function makeRandom(seed) {
-  let s = seed >>> 0;
-  return function () {
-    s += 0x6D2B79F5;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function island(seed, cx, cy, radius, n, wobble) {
-  const rnd = makeRandom(seed);
-  const pts = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * TAU;
-    const r = radius * (1 + (rnd() - 0.5) * wobble);
-    pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
-  }
-  return pts;
-}
-
-function crControls(p0, p1, p2, p3, alpha) {
-  const d01 = Math.pow(dist(p0.x, p0.y, p1.x, p1.y), alpha) || 1e-6;
-  const d12 = Math.pow(dist(p1.x, p1.y, p2.x, p2.y), alpha) || 1e-6;
-  const d23 = Math.pow(dist(p2.x, p2.y, p3.x, p3.y), alpha) || 1e-6;
-  const l01 = d01, l12 = d12, l23 = d23;
-  const k1 = 3 * l01 * (l01 + l12);
-  const k2 = 3 * l23 * (l23 + l12);
-  return {
-    c1x: (p1.x * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.x * l12 * l12 + p2.x * l01 * l01) / k1,
-    c1y: (p1.y * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.y * l12 * l12 + p2.y * l01 * l01) / k1,
-    c2x: (p2.x * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.x * l23 * l23 - p3.x * l12 * l12) / k2,
-    c2y: (p2.y * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.y * l23 * l23 - p3.y * l12 * l12) / k2,
-  };
-}
-
-function smoothPath(ctx, pts, alpha = 0.5) {
-  const n = pts.length;
-  ctx.beginPath();
-  if (n < 3) return;
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 0; i < n; i++) {
-    const p1 = pts[i];
-    const p2 = pts[(i + 1) % n];
-    const c = crControls(pts[(i - 1 + n) % n], p1, p2, pts[(i + 2) % n], alpha);
-    ctx.bezierCurveTo(c.c1x, c.c1y, c.c2x, c.c2y, p2.x, p2.y);
-  }
-  ctx.closePath();
-}
-
-function samplePath(pts, per, alpha = 0.5) {
-  const n = pts.length;
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const p1 = pts[i];
-    const p2 = pts[(i + 1) % n];
-    const c = crControls(pts[(i - 1 + n) % n], p1, p2, pts[(i + 2) % n], alpha);
-    for (let k = 0; k < per; k++) {
-      const t = k / per, u = 1 - t;
-      const a = u * u * u, b = 3 * u * u * t, d = 3 * u * t * t, e = t * t * t;
-      out.push({
-        x: a * p1.x + b * c.c1x + d * c.c2x + e * p2.x,
-        y: a * p1.y + b * c.c1y + d * c.c2y + e * p2.y,
+    /** Wire a `.segmented` group; calls back with the pressed button's data-mode. */
+    function segmented(id, onChange) {
+      const root = document.getElementById(id);
+      if (!root) return;
+      root.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        [...root.querySelectorAll('button')].forEach((b) =>
+          b.setAttribute('aria-pressed', String(b === btn)));
+        onChange(btn.dataset.mode);
       });
     }
-  }
-  return out;
-}
 
-function drawWaterlines(ctx, rings, opts) {
-  const {
-    count = 12, extent = 46, inset = 1.5, k = 0.62, color = COLOR.ink,
-    minAlpha = 0.08, maxAlpha = 0.95, weightInner = 0.9, weightOuter = 0.45,
-  } = opts || {};
+    /** Drag handles shared by three figures: nearest handle within `grab` px wins. */
+    function draggable(f, getHandles, onMove, grab = 26) {
+      let held = null;
 
-  ctx.lineJoin = 'bevel';
-  ctx.lineCap = 'round';
-  const stroke = () => rings.forEach((r) => { smoothPath(ctx, r); ctx.stroke(); });
+      function pick(p) {
+        let best = null, bestD = grab * grab;
+        getHandles().forEach((h) => {
+          const dx = h.x - p.x, dy = h.y - p.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < bestD) { bestD = d2; best = h; }
+        });
+        return best;
+      }
 
-  for (let i = 0; i <= count; i++) {
-    const t = count === 0 ? 0 : i / count;
-    const d = extent + (inset - extent) * Math.pow(t, k);
-    const weight = weightOuter + (weightInner - weightOuter) * t;
-    const alpha = minAlpha + (maxAlpha - minAlpha) * Math.pow(t, 0.8);
+      const down = (e) => {
+        held = pick(f.pointer(e));
+        if (held) e.preventDefault();
+      };
+      const move = (e) => {
+        if (!held) return;
+        e.preventDefault();
+        const p = f.pointer(e);
+        onMove(held, Math.max(0, Math.min(f.w, p.x)), Math.max(0, Math.min(f.h, p.y)));
+        f.draw();
+      };
+      const up = () => { held = null; };
 
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = alpha;
-    ctx.lineWidth = 2 * d + weight;
-    stroke();
-
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = 2 * d;
-    stroke();
-  }
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = 1;
-}
-
-function drawLand(ctx, rings) {
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = COLOR.land;
-  ctx.strokeStyle = COLOR.coast;
-  ctx.lineWidth = 1.25;
-  rings.forEach((r) => { smoothPath(ctx, r); ctx.fill(); ctx.stroke(); });
-}
-
-/* ========================================================================= *
- *  I — one picture, two vocabularies
- * ========================================================================= */
-
-figure('c-readings', (f) => {
-  const out = document.getElementById('readings-out');
-  const cap = document.getElementById('readings-cap');
-  let mode = 'chart';
-
-  // Fractions of the frame, so a resize moves the islands rather than
-  // stranding them off-canvas.
-  const A = { fx: 0.30, fy: 0.44 };
-  const B = { fx: 0.70, fy: 0.57 };
-
-  const handles = () => [
-    { x: A.fx * f.w, y: A.fy * f.h, ref: A },
-    { x: B.fx * f.w, y: B.fy * f.h, ref: B },
-  ];
-
-  draggable(f, handles, (h, x, y) => {
-    h.ref.fx = x / f.w;
-    h.ref.fy = y / f.h;
-  }, 90);
-
-  f.draw = function () {
-    const { ctx, w, h } = f;
-    const s = Math.min(w, h);
-    const ringA = island(42, A.fx * w, A.fy * h, s * 0.17, 13, 0.34);
-    const ringB = island(11, B.fx * w, B.fy * h, s * 0.14, 11, 0.30);
-    const rings = [ringA, ringB];
-
-    clearSea(ctx, w, h);
-    // N = 14 at E = 54 leaves a 2.3 px innermost gap — inside the legibility
-    // bound of methodology.md 4.2, which it would be embarrassing to break here.
-    drawWaterlines(ctx, rings, { count: 14, extent: 54, inset: 1.5, k: 0.62, color: COLOR.ink });
-    drawLand(ctx, rings);
-
-    // The seam is measured, never inferred from the ripples: sample the two
-    // coastlines densely and find where the distances agree.
-    const sa = samplePath(ringA, 10);
-    const sb = samplePath(ringB, 10);
-    const fld = (x, y) =>
-      nearestOnPolyline(x, y, sa, true).d - nearestOnPolyline(x, y, sb, true).d;
-
-    const seam = seamScan(fld, 0, h, 0, w, 4, false);
-    strokePolyline(ctx, seam, mode === 'law' ? COLOR.oxide : COLOR.green, 2.2, [7, 5]);
-
-    if (mode === 'law') {
-      // Name the parts. No new geometry — only new words for it.
-      label(ctx, 'baseline (State A)', ringA[0].x, ringA[0].y - 14, COLOR.navy, 'center');
-      label(ctx, 'baseline (State B)', ringB[0].x, ringB[0].y - 14, COLOR.navy, 'center');
-      const mid = seam.filter(Boolean)[Math.floor(seam.filter(Boolean).length / 2)];
-      if (mid) label(ctx, 'median line — art. 15', mid.x, mid.y, COLOR.oxide, 'center');
+      f.canvas.addEventListener('mousedown', down);
+      f.canvas.addEventListener('touchstart', down, { passive: false });
+      window.addEventListener('mousemove', move);
+      window.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('mouseup', up);
+      window.addEventListener('touchend', up);
     }
 
-    const gap = (() => {
-      let best = Infinity;
-      for (const p of seam) if (p) best = Math.min(best, nearestOnPolyline(p.x, p.y, sa, true).d);
-      return best;
-    })();
+    /* ------------------------------------------------------------- geometry -- */
 
-    out.innerHTML = mode === 'law'
-      ? `generators = <b>2 baselines</b> · locus = <b>equidistant points</b> · closest approach to either coast <i>${gap.toFixed(0)} px</i>`
-      : `rings = <b>2 coastlines</b> · seam = <b>medial axis of the water</b> · closest approach to either coast <b>${gap.toFixed(0)} px</b>`;
-    cap.textContent = mode === 'law'
-      ? 'The same render, with the parts named as a delimitation report would name them.'
-      : 'Twenty waterlines, and the medial axis of the water between the two islands.';
-  };
+    function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
 
-  segmented('readings-mode', (m) => { mode = m; f.draw(); });
-});
+    /** Distance from a point to a segment, and the foot of the perpendicular. */
+    function distToSegment(px, py, ax, ay, bx, by) {
+      const vx = bx - ax, vy = by - ay;
+      const len2 = vx * vx + vy * vy;
+      const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / len2)) : 0;
+      const cx = ax + vx * t, cy = ay + vy * t;
+      return { d: Math.hypot(px - cx, py - cy), cx, cy };
+    }
 
-/* ========================================================================= *
- *  II — the envelope of arcs is a waterline
- * ========================================================================= */
-
-figure('c-envelope', (f) => {
-  const slider = document.getElementById('env-slider');
-  const rOut = document.getElementById('env-r');
-  const out = document.getElementById('env-out');
-  let mode = 'arcs';
-  let miles = 12;
-
-  /** Pixels per nautical mile — fixed so the slider means something. */
-  const PX_PER_M = 3.1;
-
-  /**
-   * The baseline, as a baseline actually is: a polyline between charted
-   * points. Two bays, three headlands and one deep indentation, in fractions
-   * of the frame so a resize does not strand it. Drawn beyond both edges so
-   * the limit near the margins is generated by real coast rather than by the
-   * coast simply stopping.
-   */
-  const BASE = [
-    [-0.10, 0.80],
-    [0.03, 0.77],                       // major headland
-    [0.10, 0.840], [0.15, 0.815],       // minor bump, set back inside the bay
-    [0.20, 0.870], [0.26, 0.810],
-    [0.31, 0.73],                       // major headland
-    [0.37, 0.800], [0.43, 0.885], [0.48, 0.862],   // minor bump
-    [0.53, 0.900], [0.59, 0.830],
-    [0.64, 0.775],                      // major headland
-    [0.70, 0.845], [0.75, 0.822],       // minor bump
-    [0.80, 0.875], [0.86, 0.790],
-    [0.91, 0.735],                      // major headland
-    [0.97, 0.800], [1.10, 0.830],
-  ];
-
-  f.draw = function () {
-    const { ctx, w, h } = f;
-    const R = miles * PX_PER_M;
-    const base = BASE.map(([fx, fy]) => ({ x: fx * w, y: fy * h }));
-
-    clearSea(ctx, w, h);
-
-    /** The baseline read as a profile, so each column knows where its coast is. */
-    function coastYAt(x) {
-      for (let i = 0; i < base.length - 1; i++) {
-        const a = base[i], b = base[i + 1];
-        if (x >= a.x && x <= b.x) {
-          const t = (x - a.x) / (b.x - a.x || 1);
-          return a.y + (b.y - a.y) * t;
-        }
+    /** Nearest of a set of basepoints. Returns the distance and which one. */
+    function nearestPoint(px, py, pts) {
+      let bi = 0, bd = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const d = dist(px, py, pts[i].x, pts[i].y);
+        if (d < bd) { bd = d; bi = i; }
       }
-      return x < base[0].x ? base[0].y : base[base.length - 1].y;
+      return { d: bd, i: bi, p: pts[bi] };
     }
 
     /**
-     * The limit at a given breadth: the level set D(x) = radius, found by
-     * bisection down each column. Same object as the envelope of arcs — the
-     * seawardmost point still within `radius` of the baseline — only measured
-     * instead of constructed.
+     * Nearest feature on an open polyline, and *what* it was.
      *
-     * The bracket runs from the top edge down to the coast, not to the bottom
-     * of the frame: below the baseline the distance starts growing again, so a
-     * bracket over the whole column has the same sign at both ends and the
-     * crossing is missed entirely.
+     * A baseline is a polyline between charted points, so the thing controlling a
+     * limit is either one of those points or the run of coast between two of them.
+     * Section II needs to tell the two apart, because only the first kind is a
+     * basepoint you would list in a submission.
      */
-    function limitLine(radius) {
+    function nearestFeature(px, py, pts) {
+      let bd = Infinity, res = null;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const vx = b.x - a.x, vy = b.y - a.y;
+        const len2 = vx * vx + vy * vy;
+        const t = len2 ? Math.max(0, Math.min(1, ((px - a.x) * vx + (py - a.y) * vy) / len2)) : 0;
+        const cx = a.x + vx * t, cy = a.y + vy * t;
+        const d = Math.hypot(px - cx, py - cy);
+        if (d < bd) {
+          bd = d;
+          res = { d, cx, cy, seg: i, vertex: t <= 1e-9 ? i : t >= 1 - 1e-9 ? i + 1 : -1 };
+        }
+      }
+      return res;
+    }
+
+    /** Nearest point on a polyline. `closed` joins the last vertex to the first. */
+    function nearestOnPolyline(px, py, pts, closed) {
+      let bd = Infinity, bx = 0, by = 0;
+      const n = pts.length;
+      const last = closed ? n : n - 1;
+      for (let i = 0; i < last; i++) {
+        const a = pts[i], b = pts[(i + 1) % n];
+        const r = distToSegment(px, py, a.x, a.y, b.x, b.y);
+        if (r.d < bd) { bd = r.d; bx = r.cx; by = r.cy; }
+      }
+      return { d: bd, cx: bx, cy: by };
+    }
+
+    /**
+     * The seam, found by bisection rather than by contouring.
+     *
+     * Every figure here places its two generators on opposite sides of one axis,
+     * which makes f = dA - dB monotone along the scan direction. Twenty-two
+     * halvings then put the crossing far inside a pixel, and — unlike marching
+     * squares — the result comes out already ordered, which is what section IV
+     * needs in order to find where control changes hands.
+     */
+    function seamScan(f, from, to, lo, hi, step, vertical) {
       const out = [];
-      for (let x = 0; x <= w; x += 2) {
-        const hi = coastYAt(x);
-        const at = (y) => nearestFeature(x, y, base).d - radius;
-        if (at(0) < 0 || at(hi) > 0) { out.push(null); continue; }
-        let l = 0, r = hi;
+      for (let u = from; u <= to; u += step) {
+        const at = (v) => (vertical ? f(u, v) : f(v, u));
+        const a = at(lo);
+        if ((a > 0) === (at(hi) > 0)) { out.push(null); continue; }
+        let l = lo, r = hi;
         for (let k = 0; k < 22; k++) {
           const m = (l + r) / 2;
-          if (at(m) > 0) l = m; else r = m;
+          if ((at(m) > 0) === (a > 0)) l = m; else r = m;
         }
-        out.push({ x, y: (l + r) / 2 });
+        const v = (l + r) / 2;
+        out.push(vertical ? { x: u, y: v } : { x: v, y: u });
       }
       return out;
     }
 
-    if (mode === 'arcs') {
-      // The construction a technical expert performs with dividers: one arc of
-      // the stated breadth struck from each point of the baseline.
+    /** Draw a point list with nulls as breaks. */
+    function strokePolyline(ctx, pts, color, width, dash) {
       ctx.save();
-      ctx.strokeStyle = COLOR.ink;
-      ctx.globalAlpha = 0.28;
-      ctx.lineWidth = 1;
-      base.forEach((b) => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, R, Math.PI, TAU);
-        ctx.stroke();
-      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.setLineDash(dash || []);
+      ctx.beginPath();
+      let pen = false;
+      for (const p of pts) {
+        if (!p) { pen = false; continue; }
+        if (!pen) { ctx.moveTo(p.x, p.y); pen = true; } else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
       ctx.restore();
     }
 
-    let replicaGapM = 0;
-    if (mode === 'replica') {
-      // Tracé parallèle: the baseline copied and pushed seaward along its own
-      // normal. A rigid copy cannot round a corner, so it runs landward of the
-      // true envelope at every turn — and the shortfall grows with the breadth,
-      // which is why the shading opens up as you raise the slider.
-      const rep = base.map((p, i) => {
-        const a = base[Math.max(0, i - 1)], b = base[Math.min(base.length - 1, i + 1)];
-        const tx = b.x - a.x, ty = b.y - a.y;
-        const len = Math.hypot(tx, ty) || 1;
-        return { x: p.x + (ty / len) * R, y: p.y - (tx / len) * R };
-      });
-
-      // Per-column seawardmost point of the replica, so a self-intersecting
-      // copy still reads as one line rather than a knot.
-      const repY = new Array(Math.ceil(w / 2) + 1).fill(Infinity);
-      for (let i = 0; i < rep.length - 1; i++) {
-        const a = rep[i], b = rep[i + 1];
-        const steps = Math.max(1, Math.ceil(Math.abs(b.x - a.x) / 2));
-        for (let s = 0; s <= steps; s++) {
-          const t = s / steps;
-          const x = a.x + (b.x - a.x) * t;
-          const col = Math.round(x / 2);
-          if (col < 0 || col >= repY.length) continue;
-          repY[col] = Math.min(repY[col], a.y + (b.y - a.y) * t);
-        }
-      }
-
-      const env = limitLine(R);
-      ctx.save();
-      ctx.globalAlpha = 0.22;
-      ctx.fillStyle = COLOR.oxide;
+    function dot(ctx, x, y, r, fill, stroke) {
       ctx.beginPath();
-      let started = false;
-      env.forEach((p, i) => {
-        if (!p || !Number.isFinite(repY[i])) return;
-        if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
-      });
-      for (let i = env.length - 1; i >= 0; i--) {
-        const p = env[i];
-        if (!p || !Number.isFinite(repY[i])) continue;
-        ctx.lineTo(p.x, repY[i]);
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.4; ctx.stroke(); }
+    }
+
+    function label(ctx, text, x, y, color, align) {
+      ctx.save();
+      ctx.font = '600 11px ui-sans-serif, system-ui, sans-serif';
+      ctx.textAlign = align || 'left';
+      ctx.textBaseline = 'middle';
+      const m = ctx.measureText(text);
+      const pad = 4;
+      const wBox = m.width + pad * 2;
+      const x0 = align === 'center' ? x - wBox / 2 : align === 'right' ? x - wBox : x;
+      ctx.fillStyle = 'rgba(244,236,216,0.86)';
+      ctx.fillRect(x0, y - 8, wBox, 16);
+      ctx.fillStyle = color;
+      ctx.fillText(text, align === 'center' ? x : align === 'right' ? x - pad : x + pad, y);
+      ctx.restore();
+    }
+
+    function clearSea(ctx, w, h) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = COLOR.sea;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    /* -------------------------------------------------- waterlines, for real -- */
+    /* Section I draws the actual technique, not a lookalike: stroke a fat pen,
+       erase its middle. That is the technique itself.                         */
+
+    function makeRandom(seed) {
+      let s = seed >>> 0;
+      return function () {
+        s += 0x6D2B79F5;
+        let t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function island(seed, cx, cy, radius, n, wobble) {
+      const rnd = makeRandom(seed);
+      const pts = [];
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * TAU;
+        const r = radius * (1 + (rnd() - 0.5) * wobble);
+        pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+      }
+      return pts;
+    }
+
+    function crControls(p0, p1, p2, p3, alpha) {
+      const d01 = Math.pow(dist(p0.x, p0.y, p1.x, p1.y), alpha) || 1e-6;
+      const d12 = Math.pow(dist(p1.x, p1.y, p2.x, p2.y), alpha) || 1e-6;
+      const d23 = Math.pow(dist(p2.x, p2.y, p3.x, p3.y), alpha) || 1e-6;
+      const l01 = d01, l12 = d12, l23 = d23;
+      const k1 = 3 * l01 * (l01 + l12);
+      const k2 = 3 * l23 * (l23 + l12);
+      return {
+        c1x: (p1.x * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.x * l12 * l12 + p2.x * l01 * l01) / k1,
+        c1y: (p1.y * (2 * l01 * l01 + 3 * l01 * l12 + l12 * l12) - p0.y * l12 * l12 + p2.y * l01 * l01) / k1,
+        c2x: (p2.x * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.x * l23 * l23 - p3.x * l12 * l12) / k2,
+        c2y: (p2.y * (2 * l23 * l23 + 3 * l23 * l12 + l12 * l12) + p1.y * l23 * l23 - p3.y * l12 * l12) / k2,
+      };
+    }
+
+    function smoothPath(ctx, pts, alpha = 0.5) {
+      const n = pts.length;
+      ctx.beginPath();
+      if (n < 3) return;
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 0; i < n; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % n];
+        const c = crControls(pts[(i - 1 + n) % n], p1, p2, pts[(i + 2) % n], alpha);
+        ctx.bezierCurveTo(c.c1x, c.c1y, c.c2x, c.c2y, p2.x, p2.y);
       }
       ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      // Interior columns only: near the frame edges the replica runs off the
-      // canvas and the maximum would report the clipping rather than the gap.
-      env.forEach((p, i) => {
-        if (!p || !Number.isFinite(repY[i])) return;
-        if (p.x < w * 0.06 || p.x > w * 0.94) return;
-        replicaGapM = Math.max(replicaGapM, (repY[i] - p.y) / PX_PER_M);
-      });
-
-      strokePolyline(ctx, rep, COLOR.oxide, 2.2, [8, 4]);
     }
 
-    // The limit lines themselves.
-    const radii = mode === 'zones' ? [R, R * 2, R * 3, R * 4] : [R];
-    radii.forEach((rad, i) => {
-      strokePolyline(ctx, limitLine(rad), COLOR.teal, i === 0 ? 2.6 : 2.0 - i * 0.3);
-    });
-    if (mode === 'zones') {
-      radii.forEach((rad, i) => {
-        const at = limitLine(rad).filter(Boolean);
-        const p = at[Math.floor(at.length * 0.5)];
-        if (p) label(ctx, `${Math.round(miles * (i + 1))} M`, p.x, p.y - 9, COLOR.teal, 'center');
-      });
-    }
-
-    // Land last, so it covers the landward halves of the arcs.
-    ctx.beginPath();
-    ctx.moveTo(-20, h + 20);
-    base.forEach((p) => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(w + 20, h + 20);
-    ctx.closePath();
-    ctx.fillStyle = COLOR.land;
-    ctx.fill();
-    ctx.strokeStyle = COLOR.coast;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Controlling basepoints: the vertices — not the segments between them —
-    // that put the limit where it is. Raising the breadth strips these away
-    // one by one, which is section II's whole point.
-    const ctrl = new Set();
-    limitLine(R).forEach((p) => {
-      if (!p) return;
-      const nf = nearestFeature(p.x, p.y, base);
-      if (nf.vertex >= 0) ctrl.add(nf.vertex);
-    });
-    base.forEach((p, i) => {
-      if (p.x < -4 || p.x > w + 4) return;
-      const on = ctrl.has(i);
-      dot(ctx, p.x, p.y, on ? 4.6 : 2.6, on ? COLOR.navy : COLOR.coast, '#f4ecd8');
-    });
-
-    // A scale bar, because the whole section is about distance.
-    ctx.save();
-    ctx.strokeStyle = COLOR.ink;
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(16, h - 16); ctx.lineTo(16 + 10 * PX_PER_M, h - 16);
-    ctx.moveTo(16, h - 20); ctx.lineTo(16, h - 12);
-    ctx.moveTo(16 + 10 * PX_PER_M, h - 20); ctx.lineTo(16 + 10 * PX_PER_M, h - 12);
-    ctx.stroke();
-    ctx.restore();
-    label(ctx, '10 M', 20 + 10 * PX_PER_M, h - 16, COLOR.ink);
-
-    // Sinuosity, not the count, is what the breadth changes: the controlling
-    // set of a polygonal baseline is exactly its seaward-convex vertices, at
-    // every breadth. See the note beside the figure.
-    const lim = limitLine(R).filter(Boolean);
-    let len = 0;
-    for (let i = 1; i < lim.length; i++) len += Math.hypot(lim[i].x - lim[i - 1].x, lim[i].y - lim[i - 1].y);
-    const sinuosity = lim.length > 1 ? len / (lim[lim.length - 1].x - lim[0].x) : 1;
-
-    out.innerHTML = `breadth <b>${miles} M</b> · baseline points <b>${base.length - 2}</b> · ` +
-      `controlling <b>${ctrl.size}</b> · sinuosity <b>${sinuosity.toFixed(3)}</b>` +
-      (mode === 'replica'
-        ? ` · replica falls short by up to <i>${replicaGapM.toFixed(2)} M</i> — and the shortfall grows with the breadth`
-        : ' · raise the breadth and the sinuosity falls');
-  };
-
-  slider.addEventListener('input', () => {
-    miles = +slider.value;
-    rOut.textContent = miles;
-    f.draw();
-  });
-  segmented('env-mode', (m) => { mode = m; f.draw(); });
-});
-
-/* ========================================================================= *
- *  III — the three kinds of segment
- * ========================================================================= */
-
-figure('c-bisector', (f) => {
-  const out = document.getElementById('bis-out');
-  const cap = document.getElementById('bis-cap');
-  let mode = 'pp';
-  let phase = 0;
-
-  // Generators as fractions of the frame. A "point" uses only its first
-  // handle; a "baseline" uses both, as the two ends of a straight segment.
-  const G = {
-    // The segments run most of the frame's height on purpose: if the marker
-    // walks past the end of a baseline its nearest point is that endpoint, and
-    // the figure quietly stops showing a point-against-line case at all.
-    a: [{ fx: 0.28, fy: 0.16 }, { fx: 0.22, fy: 0.88 }],
-    b: [{ fx: 0.72, fy: 0.20 }, { fx: 0.79, fy: 0.90 }],
-  };
-
-  const usesTwo = (side) => (side === 'a' ? mode !== 'pp' : mode === 'ss');
-
-  function handleList() {
-    const hs = [];
-    ['a', 'b'].forEach((side) => {
-      const n = usesTwo(side) ? 2 : 1;
+    function samplePath(pts, per, alpha = 0.5) {
+      const n = pts.length;
+      const out = [];
       for (let i = 0; i < n; i++) {
-        hs.push({ x: G[side][i].fx * f.w, y: G[side][i].fy * f.h, ref: G[side][i] });
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % n];
+        const c = crControls(pts[(i - 1 + n) % n], p1, p2, pts[(i + 2) % n], alpha);
+        for (let k = 0; k < per; k++) {
+          const t = k / per, u = 1 - t;
+          const a = u * u * u, b = 3 * u * u * t, d = 3 * u * t * t, e = t * t * t;
+          out.push({
+            x: a * p1.x + b * c.c1x + d * c.c2x + e * p2.x,
+            y: a * p1.y + b * c.c1y + d * c.c2y + e * p2.y,
+          });
+        }
       }
+      return out;
+    }
+
+    function drawWaterlines(ctx, rings, opts) {
+      const {
+        count = 12, extent = 46, inset = 1.5, k = 0.62, color = COLOR.ink,
+        minAlpha = 0.08, maxAlpha = 0.95, weightInner = 0.9, weightOuter = 0.45,
+      } = opts || {};
+
+      ctx.lineJoin = 'bevel';
+      ctx.lineCap = 'round';
+      const stroke = () => rings.forEach((r) => { smoothPath(ctx, r); ctx.stroke(); });
+
+      for (let i = 0; i <= count; i++) {
+        const t = count === 0 ? 0 : i / count;
+        const d = extent + (inset - extent) * Math.pow(t, k);
+        const weight = weightOuter + (weightInner - weightOuter) * t;
+        const alpha = minAlpha + (maxAlpha - minAlpha) * Math.pow(t, 0.8);
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 2 * d + weight;
+        stroke();
+
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 2 * d;
+        stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+    }
+
+    function drawLand(ctx, rings) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = COLOR.land;
+      ctx.strokeStyle = COLOR.coast;
+      ctx.lineWidth = 1.25;
+      rings.forEach((r) => { smoothPath(ctx, r); ctx.fill(); ctx.stroke(); });
+    }
+
+    /* ========================================================================= *
+     *  I — one picture, two vocabularies
+     * ========================================================================= */
+
+    figure('c-readings', (f) => {
+      const out = document.getElementById('readings-out');
+      const cap = document.getElementById('readings-cap');
+      let mode = 'chart';
+
+      // Fractions of the frame, so a resize moves the islands rather than
+      // stranding them off-canvas.
+      const A = { fx: 0.30, fy: 0.44 };
+      const B = { fx: 0.70, fy: 0.57 };
+
+      const handles = () => [
+        { x: A.fx * f.w, y: A.fy * f.h, ref: A },
+        { x: B.fx * f.w, y: B.fy * f.h, ref: B },
+      ];
+
+      draggable(f, handles, (h, x, y) => {
+        h.ref.fx = x / f.w;
+        h.ref.fy = y / f.h;
+      }, 90);
+
+      f.draw = function () {
+        const { ctx, w, h } = f;
+        const s = Math.min(w, h);
+        const ringA = island(42, A.fx * w, A.fy * h, s * 0.17, 13, 0.34);
+        const ringB = island(11, B.fx * w, B.fy * h, s * 0.14, 11, 0.30);
+        const rings = [ringA, ringB];
+
+        clearSea(ctx, w, h);
+        // N = 14 at E = 54 leaves a 2.3 px innermost gap, inside the legibility
+        // bound of the technique.
+        drawWaterlines(ctx, rings, { count: 14, extent: 54, inset: 1.5, k: 0.62, color: COLOR.ink });
+        drawLand(ctx, rings);
+
+        // The seam is measured, never inferred from the ripples: sample the two
+        // coastlines densely and find where the distances agree.
+        const sa = samplePath(ringA, 10);
+        const sb = samplePath(ringB, 10);
+        const fld = (x, y) =>
+          nearestOnPolyline(x, y, sa, true).d - nearestOnPolyline(x, y, sb, true).d;
+
+        const seam = seamScan(fld, 0, h, 0, w, 4, false);
+        strokePolyline(ctx, seam, mode === 'law' ? COLOR.oxide : COLOR.green, 2.2, [7, 5]);
+
+        if (mode === 'law') {
+          // Name the parts. No new geometry — only new words for it.
+          label(ctx, 'baseline (State A)', ringA[0].x, ringA[0].y - 14, COLOR.navy, 'center');
+          label(ctx, 'baseline (State B)', ringB[0].x, ringB[0].y - 14, COLOR.navy, 'center');
+          const mid = seam.filter(Boolean)[Math.floor(seam.filter(Boolean).length / 2)];
+          if (mid) label(ctx, 'median line — art. 15', mid.x, mid.y, COLOR.oxide, 'center');
+        }
+
+        const gap = (() => {
+          let best = Infinity;
+          for (const p of seam) if (p) best = Math.min(best, nearestOnPolyline(p.x, p.y, sa, true).d);
+          return best;
+        })();
+
+        out.innerHTML = mode === 'law'
+          ? `generators = <b>2 baselines</b> · result = <b>equidistant points</b> · closest approach to either coast <i>${gap.toFixed(0)} px</i>`
+          : `coasts = <b>2</b> · seam = <b>medial axis of the water</b> · closest approach to either coast <b>${gap.toFixed(0)} px</b>`;
+        cap.textContent = mode === 'law'
+          ? 'The same picture, with the parts named as a delimitation report would name them.'
+          : 'Fourteen waterlines, and the medial axis of the water between the two islands.';
+      };
+
+      segmented('readings-mode', (m) => { mode = m; f.draw(); });
     });
-    return hs;
-  }
 
-  draggable(f, handleList, (h, x, y) => {
-    h.ref.fx = x / f.w;
-    h.ref.fy = y / f.h;
-  });
+    /* ========================================================================= *
+     *  II — the envelope of arcs is a waterline
+     * ========================================================================= */
 
-  /** Distance to one generator, plus the nearest point on it. */
-  function distTo(side, x, y) {
-    const g = G[side];
-    const p0 = { x: g[0].fx * f.w, y: g[0].fy * f.h };
-    if (!usesTwo(side)) return { d: dist(x, y, p0.x, p0.y), cx: p0.x, cy: p0.y };
-    const p1 = { x: g[1].fx * f.w, y: g[1].fy * f.h };
-    return distToSegment(x, y, p0.x, p0.y, p1.x, p1.y);
-  }
+    figure('c-envelope', (f) => {
+      const slider = document.getElementById('env-slider');
+      const rOut = document.getElementById('env-r');
+      const out = document.getElementById('env-out');
+      const sweepBtn = document.getElementById('env-sweep');
+      const speedS = document.getElementById('env-speed');
+      const spdOut = document.getElementById('env-spd');
+      const speedField = document.getElementById('env-speed-field');
+      let mode = 'arcs';
+      let miles = 12;
+      let sweep = !reduceMotion;   // draw the arcs one at a time
+      let speed = 5;               // 1 (slow) .. 10 (fast)
+      let animT0 = performance.now() / 1000;
 
-  const NAMES = {
-    pp: ['a straight line', 'the perpendicular bisector of the two basepoints'],
-    ps: ['a parabola', 'the basepoint is the focus, the straight baseline the directrix'],
-    ss: ['a straight line', 'the bisector of the angle between the two baselines'],
-  };
+      /** Pixels per nautical mile — fixed so the slider means something. */
+      const PX_PER_M = 3.1;
 
-  f.draw = function () {
-    const { ctx, w, h } = f;
-    clearSea(ctx, w, h);
+      /**
+       * The baseline, as a baseline actually is: a polyline between charted
+       * points. Two bays, three headlands and one deep indentation, in fractions
+       * of the frame so a resize does not strand it. Drawn beyond both edges so
+       * the limit near the margins is generated by real coast rather than by the
+       * coast simply stopping.
+       */
+      const BASE = [
+        [-0.10, 0.80],
+        [0.03, 0.77],                       // major headland
+        [0.10, 0.840], [0.15, 0.815],       // minor bump, set back inside the bay
+        [0.20, 0.870], [0.26, 0.810],
+        [0.31, 0.73],                       // major headland
+        [0.37, 0.800], [0.43, 0.885], [0.48, 0.862],   // minor bump
+        [0.53, 0.900], [0.59, 0.830],
+        [0.64, 0.775],                      // major headland
+        [0.70, 0.845], [0.75, 0.822],       // minor bump
+        [0.80, 0.875], [0.86, 0.790],
+        [0.91, 0.735],                      // major headland
+        [0.97, 0.800], [1.10, 0.830],
+      ];
 
-    const fld = (x, y) => distTo('a', x, y).d - distTo('b', x, y).d;
-    const curve = seamScan(fld, 0, h, 0, w, 3, false).filter(Boolean);
+      // Basepoints, recomputed only when the frame resizes.
+      let baseCache = { w: 0, pts: null };
+      function basePts() {
+        if (!baseCache.pts || baseCache.w !== f.w) {
+          baseCache = { w: f.w, pts: BASE.map(([fx, fy]) => ({ x: fx * f.w, y: fy * f.h })) };
+        }
+        return baseCache.pts;
+      }
 
-    // Faint equidistance shading either side, so the curve reads as a divide
-    // rather than as a decoration.
-    ctx.save();
-    ctx.globalAlpha = 0.10;
-    ctx.fillStyle = COLOR.navy;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    curve.forEach((p) => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(0, h);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+      /**
+       * The limit at a given breadth: the level set D(x) = radius, found by
+       * bisection down each column. Same object as the envelope of arcs — the
+       * seawardmost point still within `radius` of the baseline — only measured
+       * instead of constructed.
+       *
+       * The bracket runs from the top edge down to the coast, not to the bottom
+       * of the frame: below the baseline the distance starts growing again, so a
+       * bracket over the whole column has the same sign at both ends and the
+       * crossing is missed entirely.
+       */
+      function limitLine(radius) {
+        const base = basePts();
+        const w = f.w;
 
-    strokePolyline(ctx, curve, COLOR.teal, 2.6);
+        /** The baseline read as a profile, so each column knows where its coast is. */
+        function coastYAt(x) {
+          for (let i = 0; i < base.length - 1; i++) {
+            const a = base[i], b = base[i + 1];
+            if (x >= a.x && x <= b.x) {
+              const t = (x - a.x) / (b.x - a.x || 1);
+              return a.y + (b.y - a.y) * t;
+            }
+          }
+          return x < base[0].x ? base[0].y : base[base.length - 1].y;
+        }
 
-    // The generators.
-    ['a', 'b'].forEach((side) => {
-      const g = G[side];
-      const p0 = { x: g[0].fx * w, y: g[0].fy * h };
-      if (usesTwo(side)) {
-        const p1 = { x: g[1].fx * w, y: g[1].fy * h };
-        ctx.save();
-        ctx.strokeStyle = COLOR.coast;
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
+        const out = [];
+        for (let x = 0; x <= w; x += 2) {
+          const hi = coastYAt(x);
+          const at = (y) => nearestFeature(x, y, base).d - radius;
+          if (at(0) < 0 || at(hi) > 0) { out.push(null); continue; }
+          let l = 0, r = hi;
+          for (let k = 0; k < 22; k++) {
+            const m = (l + r) / 2;
+            if (at(m) > 0) l = m; else r = m;
+          }
+          out.push({ x, y: (l + r) / 2 });
+        }
+        return out;
+      }
+
+      // The limit lines are expensive (bisection over every column), so cache
+      // them per breadth and frame width; the sweep animation reuses them.
+      const lineCache = { miles: null, w: null, lines: {} };
+      function limitLineCached(radius) {
+        if (lineCache.miles !== miles || lineCache.w !== f.w) {
+          lineCache.miles = miles; lineCache.w = f.w; lineCache.lines = {};
+        }
+        const k = String(radius);
+        if (!(k in lineCache.lines)) lineCache.lines[k] = limitLine(radius);
+        return lineCache.lines[k];
+      }
+
+      f.draw = function () {
+        const { ctx, w, h } = f;
+        const R = miles * PX_PER_M;
+        const base = basePts();
+
+        clearSea(ctx, w, h);
+
+        /**
+         * The construction a technical expert performs with dividers: one arc of
+         * the stated breadth struck from each point of the baseline.
+         *
+         * With the sweep on, the basepoints are worked through left to right.
+         * Each gets an arm that turns from pointing left to pointing right through
+         * the seaward half, and the finished arc stays behind it. `activeIdx` is
+         * the index of the basepoint being drawn, or -1 when nothing is.
+         */
+        let activeIdx = -1;
+        if (mode === 'arcs') {
+          if (sweep && !reduceMotion) {
+            const n = base.length;
+            const sweepDur = 3.2 / speed;        // seconds per arc
+            const gap = sweepDur * 0.55;         // stagger between basepoints
+            const hold = 1.0;                    // pause with the envelope complete
+            const total = (n - 1) * gap + sweepDur + hold;
+            const t = ((animT0 % total) + total) % total;
+
+            // Arcs already drawn stay behind, faint; not-yet-reached arcs wait.
+            ctx.save();
+            ctx.strokeStyle = COLOR.ink;
+            ctx.lineWidth = 1;
+            base.forEach((b, i) => {
+              const end = i * gap + sweepDur;
+              if (t < end) return;
+              ctx.globalAlpha = 0.28;
+              ctx.beginPath();
+              ctx.arc(b.x, b.y, R, Math.PI, TAU);
+              ctx.stroke();
+            });
+            ctx.restore();
+
+            // The active arm and the part of its arc drawn so far.
+            for (let i = 0; i < n; i++) {
+              const start = i * gap;
+              const end = start + sweepDur;
+              if (t < start || t >= end) continue;
+              activeIdx = i;
+              const p = (t - start) / sweepDur;      // 0..1 across this arc
+              const a0 = Math.PI;
+              const a1 = a0 + p * Math.PI;           // through 3π/2, the seaward half
+              const b = base[i];
+              const tip = { x: b.x + R * Math.cos(a1), y: b.y + R * Math.sin(a1) };
+
+              ctx.save();
+              ctx.strokeStyle = COLOR.ink;
+              ctx.lineWidth = 1.5;
+              ctx.globalAlpha = 0.9;
+              ctx.beginPath();
+              ctx.arc(b.x, b.y, R, a0, a1);
+              ctx.stroke();
+              ctx.globalAlpha = 0.75;
+              ctx.lineWidth = 1.2;
+              ctx.setLineDash([5, 4]);
+              ctx.beginPath();
+              ctx.moveTo(b.x, b.y);
+              ctx.lineTo(tip.x, tip.y);
+              ctx.stroke();
+              ctx.restore();
+              dot(ctx, tip.x, tip.y, 3.4, COLOR.ink, '#f4ecd8');
+              break;
+            }
+          } else {
+            // Still picture: every arc at once, as a draughtsman would show the
+            // finished result.
+            ctx.save();
+            ctx.strokeStyle = COLOR.ink;
+            ctx.globalAlpha = 0.28;
+            ctx.lineWidth = 1;
+            base.forEach((b) => {
+              ctx.beginPath();
+              ctx.arc(b.x, b.y, R, Math.PI, TAU);
+              ctx.stroke();
+            });
+            ctx.restore();
+          }
+        }
+
+        let replicaGapM = 0;
+        if (mode === 'replica') {
+          // Tracé parallèle: the baseline copied and pushed seaward along its own
+          // normal. A rigid copy cannot round a corner, so it runs landward of the
+          // true envelope at every turn — and the shortfall grows with the breadth,
+          // which is why the shading opens up as you raise the slider.
+          const rep = base.map((p, i) => {
+            const a = base[Math.max(0, i - 1)], b = base[Math.min(base.length - 1, i + 1)];
+            const tx = b.x - a.x, ty = b.y - a.y;
+            const len = Math.hypot(tx, ty) || 1;
+            return { x: p.x + (ty / len) * R, y: p.y - (tx / len) * R };
+          });
+
+          // Per-column seawardmost point of the replica, so a self-intersecting
+          // copy still reads as one line rather than a knot.
+          const repY = new Array(Math.ceil(w / 2) + 1).fill(Infinity);
+          for (let i = 0; i < rep.length - 1; i++) {
+            const a = rep[i], b = rep[i + 1];
+            const steps = Math.max(1, Math.ceil(Math.abs(b.x - a.x) / 2));
+            for (let s = 0; s <= steps; s++) {
+              const t = s / steps;
+              const x = a.x + (b.x - a.x) * t;
+              const col = Math.round(x / 2);
+              if (col < 0 || col >= repY.length) continue;
+              repY[col] = Math.min(repY[col], a.y + (b.y - a.y) * t);
+            }
+          }
+
+          const env = limitLineCached(R);
+          ctx.save();
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = COLOR.oxide;
+          ctx.beginPath();
+          let started = false;
+          env.forEach((p, i) => {
+            if (!p || !Number.isFinite(repY[i])) return;
+            if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
+          });
+          for (let i = env.length - 1; i >= 0; i--) {
+            const p = env[i];
+            if (!p || !Number.isFinite(repY[i])) continue;
+            ctx.lineTo(p.x, repY[i]);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+
+          // Interior columns only: near the frame edges the replica runs off the
+          // canvas and the maximum would report the clipping rather than the gap.
+          env.forEach((p, i) => {
+            if (!p || !Number.isFinite(repY[i])) return;
+            if (p.x < w * 0.06 || p.x > w * 0.94) return;
+            replicaGapM = Math.max(replicaGapM, (repY[i] - p.y) / PX_PER_M);
+          });
+
+          strokePolyline(ctx, rep, COLOR.oxide, 2.2, [8, 4]);
+        }
+
+        // The limit lines themselves.
+        const radii = mode === 'zones' ? [R, R * 2, R * 3, R * 4] : [R];
+        radii.forEach((rad, i) => {
+          strokePolyline(ctx, limitLineCached(rad), COLOR.teal, i === 0 ? 2.6 : 2.0 - i * 0.3);
+        });
+        if (mode === 'zones') {
+          radii.forEach((rad, i) => {
+            const at = limitLineCached(rad).filter(Boolean);
+            const p = at[Math.floor(at.length * 0.5)];
+            if (p) label(ctx, `${Math.round(miles * (i + 1))} M`, p.x, p.y - 9, COLOR.teal, 'center');
+          });
+        }
+
+        // Land last, so it covers the landward halves of the arcs.
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
+        ctx.moveTo(-20, h + 20);
+        base.forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(w + 20, h + 20);
+        ctx.closePath();
+        ctx.fillStyle = COLOR.land;
+        ctx.fill();
+        ctx.strokeStyle = COLOR.coast;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Controlling basepoints: the vertices — not the segments between them —
+        // that put the limit where it is. Raising the breadth strips these away
+        // one by one, which is section II's whole point.
+        const ctrl = new Set();
+        limitLineCached(R).forEach((p) => {
+          if (!p) return;
+          const nf = nearestFeature(p.x, p.y, base);
+          if (nf.vertex >= 0) ctrl.add(nf.vertex);
+        });
+        base.forEach((p, i) => {
+          if (p.x < -4 || p.x > w + 4) return;
+          const on = ctrl.has(i);
+          dot(ctx, p.x, p.y, on ? 4.6 : 2.6, on ? COLOR.navy : COLOR.coast, '#f4ecd8');
+        });
+
+        // A ring round the basepoint whose arc is being drawn right now.
+        if (activeIdx >= 0) {
+          const b = base[activeIdx];
+          ctx.save();
+          ctx.strokeStyle = COLOR.ink;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 9, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // A scale bar, because the whole section is about distance.
+        ctx.save();
+        ctx.strokeStyle = COLOR.ink;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(16, h - 16); ctx.lineTo(16 + 10 * PX_PER_M, h - 16);
+        ctx.moveTo(16, h - 20); ctx.lineTo(16, h - 12);
+        ctx.moveTo(16 + 10 * PX_PER_M, h - 20); ctx.lineTo(16 + 10 * PX_PER_M, h - 12);
         ctx.stroke();
         ctx.restore();
-        dot(ctx, p1.x, p1.y, 6, COLOR.navy, '#f4ecd8');
+        label(ctx, '10 M', 20 + 10 * PX_PER_M, h - 16, COLOR.ink);
+
+        // Sinuosity, not the count, is what the breadth changes: the controlling
+        // set of a polygonal baseline is exactly its seaward-convex vertices, at
+        // every breadth. See the note beside the figure.
+        const lim = limitLineCached(R).filter(Boolean);
+        let len = 0;
+        for (let i = 1; i < lim.length; i++) len += Math.hypot(lim[i].x - lim[i - 1].x, lim[i].y - lim[i - 1].y);
+        const sinuosity = lim.length > 1 ? len / (lim[lim.length - 1].x - lim[0].x) : 1;
+
+        out.innerHTML = `breadth <b>${miles} M</b> · baseline points <b>${base.length - 2}</b> · ` +
+          `controlling <b>${ctrl.size}</b> · sinuosity <b>${sinuosity.toFixed(3)}</b>` +
+          (mode === 'replica'
+            ? ` · replica falls short by up to <i>${replicaGapM.toFixed(2)} M</i> — and the shortfall grows with the breadth`
+            : (sweep && !reduceMotion ? ' · an arm is drawing each arc, left to right' : ' · raise the breadth and the sinuosity falls'));
+      };
+
+      /** The sweep only earns a requestAnimationFrame loop in the arcs mode. */
+      function shouldAnimate() { return mode === 'arcs' && sweep && !reduceMotion; }
+      function tick() {
+        animT0 = performance.now() / 1000;
+        f.draw();
+        f.raf = requestAnimationFrame(tick);
       }
-      dot(ctx, p0.x, p0.y, 6, COLOR.navy, '#f4ecd8');
-      label(ctx, side === 'a' ? 'State A' : 'State B', p0.x, p0.y - 17, COLOR.navy, 'center');
+      function syncAnimation() {
+        const showSweep = mode === 'arcs' && !reduceMotion;
+        sweepBtn.style.display = showSweep ? '' : 'none';
+        speedField.style.display = (showSweep && sweep) ? '' : 'none';
+        if (shouldAnimate()) {
+          if (!f.raf) f.raf = requestAnimationFrame(tick);
+        } else {
+          cancelAnimationFrame(f.raf);
+          f.raf = 0;
+        }
+        f.draw();
+      }
+
+      f.animated = true;
+      f.start = () => syncAnimation();
+      f.stop = () => { cancelAnimationFrame(f.raf); f.raf = 0; };
+
+      sweepBtn.addEventListener('click', () => {
+        sweep = !sweep;
+        sweepBtn.setAttribute('aria-pressed', String(sweep));
+        sweepBtn.textContent = sweep ? 'Sweep arcs' : 'All arcs';
+        syncAnimation();
+      });
+      speedS.addEventListener('input', () => {
+        speed = +speedS.value;
+        spdOut.textContent = speed;
+      });
+      slider.addEventListener('input', () => {
+        miles = +slider.value;
+        rOut.textContent = miles;
+        f.draw();
+      });
+      segmented('env-mode', (m) => { mode = m; syncAnimation(); });
     });
 
-    // A marker that walks the curve carrying two arms of equal length. This is
-    // the whole idea of the section made visible.
-    if (curve.length > 4) {
-      const t = reduceMotion ? 0.5 : (Math.sin(phase) * 0.5 + 0.5);
-      const m = curve[Math.max(0, Math.min(curve.length - 1, Math.round(t * (curve.length - 1))))];
-      const ra = distTo('a', m.x, m.y);
-      const rb = distTo('b', m.x, m.y);
+    /* ========================================================================= *
+     *  III — the three kinds of segment
+     * ========================================================================= */
 
-      ctx.save();
-      ctx.strokeStyle = COLOR.oxide;
-      ctx.globalAlpha = 0.30;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(m.x, m.y, ra.d, 0, TAU);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 1.8;
-      ctx.setLineDash([5, 4]);
-      ctx.beginPath();
-      ctx.moveTo(m.x, m.y); ctx.lineTo(ra.cx, ra.cy);
-      ctx.moveTo(m.x, m.y); ctx.lineTo(rb.cx, rb.cy);
-      ctx.stroke();
-      ctx.restore();
-      dot(ctx, m.x, m.y, 4.5, COLOR.oxide, '#f4ecd8');
+    figure('c-bisector', (f) => {
+      const out = document.getElementById('bis-out');
+      const cap = document.getElementById('bis-cap');
+      let mode = 'pp';
+      let phase = 0;
 
-      out.innerHTML = `d(A) = <b>${ra.d.toFixed(1)}</b> px · d(B) = <b>${rb.d.toFixed(1)}</b> px · ` +
-        `difference <b>${Math.abs(ra.d - rb.d).toFixed(3)}</b> px`;
-    }
+      // Generators as fractions of the frame. A "point" uses only its first
+      // handle; a "baseline" uses both, as the two ends of a straight segment.
+      const G = {
+        // The segments run most of the frame's height on purpose: if the marker
+        // walks past the end of a baseline its nearest point is that endpoint, and
+        // the figure quietly stops showing a point-against-line case at all.
+        a: [{ fx: 0.28, fy: 0.16 }, { fx: 0.22, fy: 0.88 }],
+        b: [{ fx: 0.72, fy: 0.20 }, { fx: 0.79, fy: 0.90 }],
+      };
 
-    cap.textContent = `${NAMES[mode][0].replace(/^a/, 'A')} — ${NAMES[mode][1]}.`;
-  };
+      const usesTwo = (side) => (side === 'a' ? mode !== 'pp' : mode === 'ss');
 
-  function tick() {
-    phase += 0.011;
-    f.draw();
-    f.raf = requestAnimationFrame(tick);
-  }
-  f.animated = true;
-  f.start = () => { if (!f.raf) { if (reduceMotion) f.draw(); else f.raf = requestAnimationFrame(tick); } };
-  f.stop = () => { cancelAnimationFrame(f.raf); f.raf = 0; };
-
-  segmented('bis-mode', (m) => { mode = m; f.draw(); });
-});
-
-/* ========================================================================= *
- *  IV — the median line, its controlling basepoints and its turning points
- * ========================================================================= */
-
-figure('c-median', (f) => {
-  const out = document.getElementById('med-out');
-  const cap = document.getElementById('med-cap');
-  const rockBtn = document.getElementById('med-rock');
-  let mode = 'line';
-  let rockOn = false;
-  let hoverX = 0.5;      // fraction of the frame; picks the turning point shown
-
-  const KM_WIDE = 400;   // the frame, declared, so the readouts mean something
-
-  // Basepoints as fractions of the frame. Coast A above, coast B below.
-  const A = [
-    { fx: 0.06, fy: 0.20 }, { fx: 0.24, fy: 0.13 }, { fx: 0.43, fy: 0.22 },
-    { fx: 0.62, fy: 0.11 }, { fx: 0.81, fy: 0.20 }, { fx: 0.96, fy: 0.15 },
-  ];
-  const B = [
-    { fx: 0.05, fy: 0.86 }, { fx: 0.22, fy: 0.79 }, { fx: 0.40, fy: 0.88 },
-    { fx: 0.58, fy: 0.80 }, { fx: 0.76, fy: 0.89 }, { fx: 0.95, fy: 0.82 },
-  ];
-  const ROCK = { fx: 0.49, fy: 0.58 };
-
-  const px = (arr) => arr.map((p) => ({ x: p.fx * f.w, y: p.fy * f.h }));
-
-  function handleList() {
-    const hs = [];
-    A.concat(B).forEach((p) => hs.push({ x: p.fx * f.w, y: p.fy * f.h, ref: p }));
-    if (rockOn) hs.push({ x: ROCK.fx * f.w, y: ROCK.fy * f.h, ref: ROCK });
-    return hs;
-  }
-  draggable(f, handleList, (h, x, y) => { h.ref.fx = x / f.w; h.ref.fy = y / f.h; });
-
-  /** The strict equidistance line, plus which basepoint controls each sample. */
-  function median(ptsA, ptsB, w, h, step) {
-    const fld = (x, y) => nearestPoint(x, y, ptsA).d - nearestPoint(x, y, ptsB).d;
-    const line = seamScan(fld, 0, w, 0, h, step, true);
-    return line.map((p) => {
-      if (!p) return null;
-      return { x: p.x, y: p.y, ia: nearestPoint(p.x, p.y, ptsA).i, ib: nearestPoint(p.x, p.y, ptsB).i };
-    });
-  }
-
-  /** Sea between two lines sampled on the same x, in square kilometres. */
-  function areaBetween(l1, l2, w) {
-    const kmPerPx = KM_WIDE / w;
-    let a = 0;
-    for (let i = 0; i < l1.length && i < l2.length; i++) {
-      if (!l1[i] || !l2[i]) continue;
-      const step = i > 0 ? Math.abs(l1[i].x - l1[i - 1].x) : 0;
-      a += Math.abs(l1[i].y - l2[i].y) * step;
-    }
-    return a * kmPerPx * kmPerPx;
-  }
-
-  function drawCoast(ctx, pts, top, w, h) {
-    ctx.beginPath();
-    ctx.moveTo(-10, top ? -10 : h + 10);
-    pts.forEach((p) => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(w + 10, top ? -10 : h + 10);
-    ctx.closePath();
-    ctx.fillStyle = COLOR.land;
-    ctx.fill();
-    ctx.strokeStyle = COLOR.coast;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-
-  f.draw = function () {
-    const { ctx, w, h } = f;
-    clearSea(ctx, w, h);
-
-    const pa = px(A);
-    const pb = px(B);
-    const rock = { x: ROCK.fx * w, y: ROCK.fy * h };
-    const pbFull = rockOn ? pb.concat([rock]) : pb;
-
-    const base = median(pa, pb, w, h, 2);
-    const line = rockOn ? median(pa, pbFull, w, h, 2) : base;
-
-    drawCoast(ctx, pa, true, w, h);
-    drawCoast(ctx, pb, false, w, h);
-
-    // Basepoints the Delaunay mode wants drawn on top of everything else.
-    let highlight = [];
-
-    // Turning points: where control changes hands on either side.
-    const turns = [];
-    for (let i = 1; i < line.length; i++) {
-      const p = line[i], q = line[i - 1];
-      if (!p || !q) continue;
-      if (p.ia !== q.ia || p.ib !== q.ib) turns.push({ p: q, next: p });
-    }
-
-    if (mode === 'simple') {
-      const pts = line.filter(Boolean);
-      if (pts.length > 1) {
-        const simple = pts.map((p, i) => ({
-          x: p.x,
-          y: pts[0].y + (pts[pts.length - 1].y - pts[0].y) * (i / (pts.length - 1)),
-        }));
-        strokePolyline(ctx, line, COLOR.ink, 1.2, [3, 4]);
-        strokePolyline(ctx, simple, COLOR.teal, 2.8);
-        const moved = areaBetween(pts, simple, w);
-        out.innerHTML = `strict line <b>${turns.length}</b> turning points → simplified to <b>1</b> segment · ` +
-          `sea reallocated <i>${moved.toFixed(0)} km²</i> · this is what the negotiation is about`;
-        cap.textContent = 'A strict equidistance line is unique but impractical; every simplification of it moves sea.';
-        return;
+      function handleList() {
+        const hs = [];
+        ['a', 'b'].forEach((side) => {
+          const n = usesTwo(side) ? 2 : 1;
+          for (let i = 0; i < n; i++) {
+            hs.push({ x: G[side][i].fx * f.w, y: G[side][i].fy * f.h, ref: G[side][i] });
+          }
+        });
+        return hs;
       }
-    }
 
-    strokePolyline(ctx, line, COLOR.teal, 2.6);
+      draggable(f, handleList, (h, x, y) => {
+        h.ref.fx = x / f.w;
+        h.ref.fy = y / f.h;
+      });
 
-    if (mode === 'control') {
-      // Tie each sample to the two basepoints that put it where it is. Drawn
-      // sparsely, or the picture becomes a hairball.
-      ctx.save();
-      ctx.strokeStyle = COLOR.navy;
-      ctx.globalAlpha = 0.22;
-      ctx.lineWidth = 1;
-      for (let i = 0; i < line.length; i += 11) {
-        const p = line[i];
-        if (!p) continue;
-        const a = pa[p.ia], b = pbFull[p.ib];
+      /** Distance to one generator, plus the nearest point on it. */
+      function distTo(side, x, y) {
+        const g = G[side];
+        const p0 = { x: g[0].fx * f.w, y: g[0].fy * f.h };
+        if (!usesTwo(side)) return { d: dist(x, y, p0.x, p0.y), cx: p0.x, cy: p0.y };
+        const p1 = { x: g[1].fx * f.w, y: g[1].fy * f.h };
+        return distToSegment(x, y, p0.x, p0.y, p1.x, p1.y);
+      }
+
+      const NAMES = {
+        pp: ['a straight line', 'the perpendicular bisector of the two basepoints'],
+        ps: ['a parabola', 'the basepoint is the focus, the straight baseline the directrix'],
+        ss: ['a straight line', 'the bisector of the angle between the two baselines'],
+      };
+
+      f.draw = function () {
+        const { ctx, w, h } = f;
+        clearSea(ctx, w, h);
+
+        const fld = (x, y) => distTo('a', x, y).d - distTo('b', x, y).d;
+        const curve = seamScan(fld, 0, h, 0, w, 3, false).filter(Boolean);
+
+        // Faint equidistance shading either side, so the curve reads as a divide
+        // rather than as a decoration.
+        ctx.save();
+        ctx.globalAlpha = 0.10;
+        ctx.fillStyle = COLOR.navy;
         ctx.beginPath();
-        ctx.moveTo(a.x, a.y); ctx.lineTo(p.x, p.y); ctx.lineTo(b.x, b.y);
+        ctx.moveTo(0, 0);
+        curve.forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        strokePolyline(ctx, curve, COLOR.teal, 2.6);
+
+        // The generators.
+        ['a', 'b'].forEach((side) => {
+          const g = G[side];
+          const p0 = { x: g[0].fx * w, y: g[0].fy * h };
+          if (usesTwo(side)) {
+            const p1 = { x: g[1].fx * w, y: g[1].fy * h };
+            ctx.save();
+            ctx.strokeStyle = COLOR.coast;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.stroke();
+            ctx.restore();
+            dot(ctx, p1.x, p1.y, 6, COLOR.navy, '#f4ecd8');
+          }
+          dot(ctx, p0.x, p0.y, 6, COLOR.navy, '#f4ecd8');
+          label(ctx, side === 'a' ? 'State A' : 'State B', p0.x, p0.y - 17, COLOR.navy, 'center');
+        });
+
+        // A marker that walks the curve carrying two arms of equal length. This is
+        // the whole idea of the section made visible.
+        if (curve.length > 4) {
+          const t = reduceMotion ? 0.5 : (Math.sin(phase) * 0.5 + 0.5);
+          const m = curve[Math.max(0, Math.min(curve.length - 1, Math.round(t * (curve.length - 1))))];
+          const ra = distTo('a', m.x, m.y);
+          const rb = distTo('b', m.x, m.y);
+
+          ctx.save();
+          ctx.strokeStyle = COLOR.oxide;
+          ctx.globalAlpha = 0.30;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, ra.d, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.lineWidth = 1.8;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(m.x, m.y); ctx.lineTo(ra.cx, ra.cy);
+          ctx.moveTo(m.x, m.y); ctx.lineTo(rb.cx, rb.cy);
+          ctx.stroke();
+          ctx.restore();
+          dot(ctx, m.x, m.y, 4.5, COLOR.oxide, '#f4ecd8');
+
+          out.innerHTML = `d(A) = <b>${ra.d.toFixed(1)}</b> px · d(B) = <b>${rb.d.toFixed(1)}</b> px · ` +
+            `difference <b>${Math.abs(ra.d - rb.d).toFixed(3)}</b> px`;
+        }
+
+        cap.textContent = `${NAMES[mode][0].replace(/^a/, 'A')} — ${NAMES[mode][1]}.`;
+      };
+
+      function tick() {
+        phase += 0.011;
+        f.draw();
+        f.raf = requestAnimationFrame(tick);
+      }
+      f.animated = true;
+      f.start = () => { if (!f.raf) { if (reduceMotion) f.draw(); else f.raf = requestAnimationFrame(tick); } };
+      f.stop = () => { cancelAnimationFrame(f.raf); f.raf = 0; };
+
+      segmented('bis-mode', (m) => { mode = m; f.draw(); });
+    });
+
+    /* ========================================================================= *
+     *  IV — the median line, its controlling basepoints and its turning points
+     * ========================================================================= */
+
+    figure('c-median', (f) => {
+      const out = document.getElementById('med-out');
+      const cap = document.getElementById('med-cap');
+      const rockBtn = document.getElementById('med-rock');
+      const zoomS = document.getElementById('med-zoom-slider');
+      const zoomOut = document.getElementById('med-zoom');
+      const zoomField = document.getElementById('med-zoom-field');
+      let mode = 'line';
+      let rockOn = false;
+      let zoom = 16;         // 5 (coarse) .. 20 (fine): the level-of-detail scale
+      let hoverX = 0.5;      // fraction of the frame; picks the turning point shown
+
+      const KM_WIDE = 400;   // the frame, declared, so the readouts mean something
+      const ROCK_KM = 0.6;   // the rock's real size in km — small enough to be culled
+
+      // Level of detail: at a coarse zoom the smallest feature that is kept is
+      // bigger than the rock, so the rock is culled — silently, the way a screen
+      // drops small islands as you zoom out.
+      function rockState() {
+        const cutoffKm = 0.25 + (16 - zoom) * 0.14;   // smallest feature kept, km
+        return {
+          rockR: 9 * (zoom / 16),
+          cutoffKm,
+          rockDropped: rockOn && cutoffKm > ROCK_KM,
+        };
+      }
+      zoomField.style.display = 'none';   // only matters once a rock is added
+
+      // Basepoints as fractions of the frame. Coast A above, coast B below.
+      const A = [
+        { fx: 0.06, fy: 0.20 }, { fx: 0.24, fy: 0.13 }, { fx: 0.43, fy: 0.22 },
+        { fx: 0.62, fy: 0.11 }, { fx: 0.81, fy: 0.20 }, { fx: 0.96, fy: 0.15 },
+      ];
+      const B = [
+        { fx: 0.05, fy: 0.86 }, { fx: 0.22, fy: 0.79 }, { fx: 0.40, fy: 0.88 },
+        { fx: 0.58, fy: 0.80 }, { fx: 0.76, fy: 0.89 }, { fx: 0.95, fy: 0.82 },
+      ];
+      const ROCK = { fx: 0.49, fy: 0.58 };
+
+      const px = (arr) => arr.map((p) => ({ x: p.fx * f.w, y: p.fy * f.h }));
+
+      function handleList() {
+        const hs = [];
+        A.concat(B).forEach((p) => hs.push({ x: p.fx * f.w, y: p.fy * f.h, ref: p }));
+        if (rockOn && !rockState().rockDropped) hs.push({ x: ROCK.fx * f.w, y: ROCK.fy * f.h, ref: ROCK });
+        return hs;
+      }
+      draggable(f, handleList, (h, x, y) => { h.ref.fx = x / f.w; h.ref.fy = y / f.h; });
+
+      /** The strict equidistance line, plus which basepoint controls each sample. */
+      function median(ptsA, ptsB, w, h, step) {
+        const fld = (x, y) => nearestPoint(x, y, ptsA).d - nearestPoint(x, y, ptsB).d;
+        const line = seamScan(fld, 0, w, 0, h, step, true);
+        return line.map((p) => {
+          if (!p) return null;
+          return { x: p.x, y: p.y, ia: nearestPoint(p.x, p.y, ptsA).i, ib: nearestPoint(p.x, p.y, ptsB).i };
+        });
+      }
+
+      /** Sea between two lines sampled on the same x, in square kilometres. */
+      function areaBetween(l1, l2, w) {
+        const kmPerPx = KM_WIDE / w;
+        let a = 0;
+        for (let i = 0; i < l1.length && i < l2.length; i++) {
+          if (!l1[i] || !l2[i]) continue;
+          const step = i > 0 ? Math.abs(l1[i].x - l1[i - 1].x) : 0;
+          a += Math.abs(l1[i].y - l2[i].y) * step;
+        }
+        return a * kmPerPx * kmPerPx;
+      }
+
+      function drawCoast(ctx, pts, top, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(-10, top ? -10 : h + 10);
+        pts.forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(w + 10, top ? -10 : h + 10);
+        ctx.closePath();
+        ctx.fillStyle = COLOR.land;
+        ctx.fill();
+        ctx.strokeStyle = COLOR.coast;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
       }
-      ctx.restore();
-    }
 
-    if (mode === 'dual' && turns.length) {
-      // One turning point at a time. Drawing all ten circumcircles at once is
-      // accurate and completely unreadable; the construction only teaches
-      // anything when you can see a single circle and the three points on it.
-      let sel = turns[0];
-      turns.forEach((t) => {
-        if (Math.abs(t.p.x - hoverX * w) < Math.abs(sel.p.x - hoverX * w)) sel = t;
+      f.draw = function () {
+        const { ctx, w, h } = f;
+        clearSea(ctx, w, h);
+
+        const pa = px(A);
+        const pb = px(B);
+        const rock = { x: ROCK.fx * w, y: ROCK.fy * h };
+        const pbFull = pb.concat([rock]);
+        const { rockR, rockDropped } = rockState();
+
+        const base = median(pa, pb, w, h, 2);
+        const withRock = rockOn ? median(pa, pbFull, w, h, 2) : null;
+        const line = rockOn && !rockDropped ? withRock : base;
+        // Which generator set `line`'s control indices refer to.
+        const linePtsB = rockOn && !rockDropped ? pbFull : pb;
+
+        drawCoast(ctx, pa, true, w, h);
+        drawCoast(ctx, pb, false, w, h);
+
+        // Basepoints the Delaunay mode wants drawn on top of everything else.
+        let highlight = [];
+
+        // Turning points: where control changes hands on either side.
+        const turns = [];
+        for (let i = 1; i < line.length; i++) {
+          const p = line[i], q = line[i - 1];
+          if (!p || !q) continue;
+          if (p.ia !== q.ia || p.ib !== q.ib) turns.push({ p: q, next: p });
+        }
+
+        if (mode === 'simple') {
+          const pts = line.filter(Boolean);
+          if (pts.length > 1) {
+            const simple = pts.map((p, i) => ({
+              x: p.x,
+              y: pts[0].y + (pts[pts.length - 1].y - pts[0].y) * (i / (pts.length - 1)),
+            }));
+            strokePolyline(ctx, line, COLOR.ink, 1.2, [3, 4]);
+            strokePolyline(ctx, simple, COLOR.teal, 2.8);
+            const moved = areaBetween(pts, simple, w);
+            out.innerHTML = `strict line <b>${turns.length}</b> turning points → simplified to <b>1</b> segment · ` +
+              `sea reallocated <i>${moved.toFixed(0)} km²</i> · this is what the negotiation is about`;
+            cap.textContent = 'A strict equidistance line is unique but impractical; every simplification of it moves sea.';
+            return;
+          }
+        }
+
+        strokePolyline(ctx, line, COLOR.teal, 2.6);
+
+        if (mode === 'control') {
+          // Tie each sample to the two basepoints that put it where it is. Drawn
+          // sparsely, or the picture becomes a hairball.
+          ctx.save();
+          ctx.strokeStyle = COLOR.navy;
+          ctx.globalAlpha = 0.22;
+          ctx.lineWidth = 1;
+          for (let i = 0; i < line.length; i += 11) {
+            const p = line[i];
+            if (!p) continue;
+            const a = pa[p.ia], b = linePtsB[p.ib];
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y); ctx.lineTo(p.x, p.y); ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        if (mode === 'dual' && turns.length) {
+          // One turning point at a time. Drawing all ten circumcircles at once is
+          // accurate and completely unreadable; the construction only teaches
+          // anything when you can see a single circle and the three points on it.
+          let sel = turns[0];
+          turns.forEach((t) => {
+            if (Math.abs(t.p.x - hoverX * w) < Math.abs(sel.p.x - hoverX * w)) sel = t;
+          });
+          const p = sel.p;
+          const r = nearestPoint(p.x, p.y, pa).d;
+
+          ctx.save();
+          ctx.strokeStyle = COLOR.oxide;
+          ctx.globalAlpha = 0.75;
+          ctx.lineWidth = 1.4;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+
+          // The generators the circle passes through: one on each side plus the
+          // one taking over. Deduplicated, because a turn that changes control on
+          // only one coast has three, not four.
+          const three = [...new Set([sel.p.ia, sel.next.ia])].map((i) => pa[i])
+            .concat([...new Set([sel.p.ib, sel.next.ib])].map((i) => linePtsB[i]));
+          ctx.save();
+          ctx.strokeStyle = COLOR.oxide;
+          ctx.lineWidth = 1.6;
+          three.forEach((g) => {
+            if (!g) return;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(g.x, g.y);
+            ctx.stroke();
+          });
+          ctx.restore();
+          highlight = three.filter(Boolean);
+          label(ctx, `${highlight.length} basepoints, one empty circle`, p.x, p.y - r - 12, COLOR.oxide, 'center');
+        }
+
+        if (mode !== 'line') turns.forEach((t) => dot(ctx, t.p.x, t.p.y, 4, COLOR.oxide, '#f4ecd8'));
+
+        pa.forEach((p) => dot(ctx, p.x, p.y, 5, COLOR.navy, '#f4ecd8'));
+        pb.forEach((p) => dot(ctx, p.x, p.y, 5, COLOR.navy, '#f4ecd8'));
+        // After the plain basepoints, or the ordinary navy dots paint over them.
+        highlight.forEach((g) => dot(ctx, g.x, g.y, 6.5, COLOR.oxide, '#f4ecd8'));
+        if (rockOn && !rockDropped) {
+          // The rock is big enough to be kept, and it takes control of the
+          // boundary. The line without it stays as a faint reminder.
+          dot(ctx, rock.x, rock.y, Math.max(3, rockR), COLOR.oxide, '#f4ecd8');
+          label(ctx, 'one rock', rock.x, rock.y - rockR - 14, COLOR.oxide, 'center');
+          strokePolyline(ctx, base, COLOR.ink, 1.2, [3, 4]);
+        } else if (rockOn) {
+          // Zoomed out: the rock fell below the level-of-detail cutoff and was
+          // culled. The solid line is what the screen draws now; the dashed line
+          // is what the law would draw with the rock still there.
+          ctx.save();
+          ctx.strokeStyle = COLOR.oxide;
+          ctx.globalAlpha = 0.45;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.arc(rock.x, rock.y, 8, 0, TAU);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+          label(ctx, 'the rock was dropped at this zoom', rock.x, rock.y - 14, COLOR.oxide, 'center');
+          if (withRock) {
+            strokePolyline(ctx, withRock, COLOR.ink, 1.2, [3, 4]);
+            const wr = withRock.filter(Boolean);
+            if (wr.length) {
+              const mid = wr[Math.floor(wr.length / 2)];
+              label(ctx, 'what the law would draw', mid.x, mid.y - 12, COLOR.ink, 'center');
+            }
+          }
+        }
+
+        const moved = rockOn && !rockDropped
+          ? areaBetween(base.filter(Boolean), line.filter(Boolean), w)
+          : 0;
+        const lost = rockDropped && withRock
+          ? areaBetween(base.filter(Boolean), withRock.filter(Boolean), w)
+          : 0;
+        const genCount = rockOn && !rockDropped ? pbFull.length : pb.length;
+        out.innerHTML =
+          `basepoints <b>${pa.length + genCount}</b> · turning points <b>${turns.length}</b>` +
+          (rockOn && !rockDropped
+            ? ` · the rock transfers <i>${moved.toFixed(0)} km²</i> of sea`
+            : rockDropped
+              ? ` · <i>the rock (${ROCK_KM} km) fell below the detail cutoff and vanished — it would have moved the line by ${lost.toFixed(0)} km²</i>`
+              : '');
+        cap.textContent = rockDropped
+          ? 'Zoomed out: the small island was dropped. The solid line is what the screen draws; the dashed line is what the law would draw.'
+          : mode === 'dual'
+            ? 'Each dashed circle passes through the basepoints controlling the turn and encloses no other — the Delaunay condition.'
+            : mode === 'control'
+              ? 'Every stretch of the line is controlled by one basepoint on each coast.'
+              : 'The strict equidistance line between two coasts, from their basepoints.';
+      };
+
+      // Sweeping the pointer walks the construction along the boundary. Harmless
+      // in the other modes, so it is not gated on one.
+      f.canvas.addEventListener('mousemove', (e) => {
+        hoverX = Math.max(0, Math.min(1, f.pointer(e).x / f.w));
+        if (mode === 'dual') f.draw();
       });
-      const p = sel.p;
-      const r = nearestPoint(p.x, p.y, pa).d;
 
-      ctx.save();
-      ctx.strokeStyle = COLOR.oxide;
-      ctx.globalAlpha = 0.75;
-      ctx.lineWidth = 1.4;
-      ctx.setLineDash([5, 4]);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, TAU);
-      ctx.stroke();
-      ctx.restore();
-
-      // The generators the circle passes through: one on each side plus the
-      // one taking over. Deduplicated, because a turn that changes control on
-      // only one coast has three, not four.
-      const three = [...new Set([sel.p.ia, sel.next.ia])].map((i) => pa[i])
-        .concat([...new Set([sel.p.ib, sel.next.ib])].map((i) => pbFull[i]));
-      ctx.save();
-      ctx.strokeStyle = COLOR.oxide;
-      ctx.lineWidth = 1.6;
-      three.forEach((g) => {
-        if (!g) return;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(g.x, g.y);
-        ctx.stroke();
+      rockBtn.addEventListener('click', () => {
+        rockOn = !rockOn;
+        rockBtn.setAttribute('aria-pressed', String(rockOn));
+        rockBtn.textContent = rockOn ? 'Remove the rock' : 'Add one rock';
+        zoomField.style.display = rockOn ? '' : 'none';
+        f.draw();
       });
-      ctx.restore();
-      highlight = three.filter(Boolean);
-      label(ctx, `${highlight.length} basepoints, one empty circle`, p.x, p.y - r - 12, COLOR.oxide, 'center');
-    }
-
-    if (mode !== 'line') turns.forEach((t) => dot(ctx, t.p.x, t.p.y, 4, COLOR.oxide, '#f4ecd8'));
-
-    pa.forEach((p) => dot(ctx, p.x, p.y, 5, COLOR.navy, '#f4ecd8'));
-    pb.forEach((p) => dot(ctx, p.x, p.y, 5, COLOR.navy, '#f4ecd8'));
-    // After the plain basepoints, or the ordinary navy dots paint over them.
-    highlight.forEach((g) => dot(ctx, g.x, g.y, 6.5, COLOR.oxide, '#f4ecd8'));
-    if (rockOn) {
-      dot(ctx, rock.x, rock.y, 5, COLOR.oxide, '#f4ecd8');
-      label(ctx, 'one rock', rock.x, rock.y - 16, COLOR.oxide, 'center');
-      strokePolyline(ctx, base, COLOR.ink, 1.2, [3, 4]);
-    }
-
-    const moved = rockOn ? areaBetween(base.filter(Boolean), line.filter(Boolean), w) : 0;
-    out.innerHTML =
-      `basepoints <b>${pa.length + pbFull.length}</b> · turning points <b>${turns.length}</b>` +
-      (rockOn ? ` · the rock transfers <i>${moved.toFixed(0)} km²</i> of sea` : '');
-    cap.textContent = mode === 'dual'
-      ? 'Each dashed circle passes through the basepoints controlling the turn and encloses no other — the Delaunay condition.'
-      : mode === 'control'
-        ? 'Every stretch of the line is controlled by one basepoint on each coast.'
-        : 'The strict equidistance line between two coasts, from their basepoints.';
-  };
-
-  // Sweeping the pointer walks the construction along the boundary. Harmless
-  // in the other modes, so it is not gated on one.
-  f.canvas.addEventListener('mousemove', (e) => {
-    hoverX = Math.max(0, Math.min(1, f.pointer(e).x / f.w));
-    if (mode === 'dual') f.draw();
-  });
-
-  rockBtn.addEventListener('click', () => {
-    rockOn = !rockOn;
-    rockBtn.setAttribute('aria-pressed', String(rockOn));
-    rockBtn.textContent = rockOn ? 'Remove the rock' : 'Add one rock';
-    f.draw();
-  });
-  segmented('med-mode', (m) => { mode = m; f.draw(); });
-});
-
-/* ========================================================================= *
- *  V — the finding: a pixel median is not a geodesic median
- * ========================================================================= */
-
-figure('c-mercator', (f) => {
-  const latS = document.getElementById('merc-lat-slider');
-  const sepS = document.getElementById('merc-sep-slider');
-  const latOut = document.getElementById('merc-lat');
-  const sepOut = document.getElementById('merc-sep');
-  const out = document.getElementById('merc-out');
-
-  const R_KM = 6371;
-  const D2R = Math.PI / 180;
-  let phiM = 10;        // mid-latitude, degrees
-  let sep = 4;          // total separation between the coasts, degrees
-
-  /** Web Mercator ordinate. The whole section is about this function's curve. */
-  const merc = (phiDeg) => Math.log(Math.tan(Math.PI / 4 + (phiDeg * D2R) / 2));
-  /** …and its inverse, used to turn the mid-ordinate back into a latitude. */
-  const invMerc = (y) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / D2R;
-
-  f.draw = function () {
-    const { ctx, w, h } = f;
-    const half = sep / 2;
-    const phiA = phiM + half;      // poleward coast
-    const phiB = phiM - half;
-
-    // Exact, not the small-h expansion: the pixel median is the latitude whose
-    // ordinate is the mean of the two coasts' ordinates.
-    const phiPixel = invMerc((merc(phiA) + merc(phiB)) / 2);
-    const dPhi = phiPixel - phiM;
-    const dKm = Math.abs(dPhi) * D2R * R_KM;
-
-    // View window, in ordinate space, so the picture really is Mercator.
-    const pad = half * 1.7;
-    const yTop = merc(phiM + pad), yBot = merc(phiM - pad);
-    const toY = (phi) => h - ((merc(phi) - yBot) / (yTop - yBot)) * h;
-
-    clearSea(ctx, w, h);
-
-    const mainW = w * 0.62;
-
-    // Graticule, at whole degrees — the visual evidence that spacing widens
-    // poleward. This is the cause of everything else in the figure.
-    ctx.save();
-    ctx.strokeStyle = COLOR.rule;
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.7;
-    const gStep = pad > 6 ? 2 : 1;
-    for (let p = Math.ceil(phiM - pad); p <= phiM + pad; p += gStep) {
-      const y = toY(p);
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mainW, y); ctx.stroke();
-    }
-    ctx.restore();
-
-    // The two coasts.
-    [phiA, phiB].forEach((phi, i) => {
-      const y = toY(phi);
-      ctx.fillStyle = COLOR.land;
-      ctx.fillRect(0, i === 0 ? 0 : y, mainW, i === 0 ? y : h - y);
-      ctx.strokeStyle = COLOR.coast;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mainW, y); ctx.stroke();
-      label(ctx, `${phi.toFixed(1)}°`, 8, y + (i === 0 ? -12 : 12), COLOR.ink);
+      zoomS.addEventListener('input', () => {
+        zoom = +zoomS.value;
+        zoomOut.textContent = zoom;
+        f.draw();
+      });
+      segmented('med-mode', (m) => { mode = m; f.draw(); });
     });
 
-    const yTrue = toY(phiM);
-    const yPix = toY(phiPixel);
+    /* ========================================================================= *
+     *  V — the finding: a screen seam is not a true median
+     * ========================================================================= */
 
-    strokePolyline(ctx, [{ x: 0, y: yTrue }, { x: mainW, y: yTrue }], COLOR.green, 2.4);
-    strokePolyline(ctx, [{ x: 0, y: yPix }, { x: mainW, y: yPix }], COLOR.oxide, 2.4, [7, 5]);
-    // The honest part: at map scale the wrong line sits on top of the right
-    // one. That is exactly why the error survives inspection.
-    label(ctx, 'both lines, at map scale', mainW / 2, yTrue - 15, COLOR.ink, 'center');
+    figure('c-mercator', (f) => {
+      const latS = document.getElementById('merc-lat-slider');
+      const sepS = document.getElementById('merc-sep-slider');
+      const latOut = document.getElementById('merc-lat');
+      const sepOut = document.getElementById('merc-sep');
+      const out = document.getElementById('merc-out');
 
-    // Scale bar for the main view.
-    const kmPerPxMain = (pad * 2 * D2R * R_KM) / h;
-    const barKm = 100;
-    const barPx = barKm / kmPerPxMain;
-    ctx.save();
-    ctx.strokeStyle = COLOR.ink;
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(16, h - 18); ctx.lineTo(16, h - 18 - barPx);
-    ctx.moveTo(12, h - 18); ctx.lineTo(20, h - 18);
-    ctx.moveTo(12, h - 18 - barPx); ctx.lineTo(20, h - 18 - barPx);
-    ctx.stroke();
-    ctx.restore();
-    label(ctx, `${barKm} km`, 24, h - 18 - barPx / 2, COLOR.ink);
+      const R_KM = 6371;
+      const D2R = Math.PI / 180;
+      let phiM = 45;        // mid-latitude, degrees (high enough to see the effect)
+      let sep = 4;          // total separation between the coasts, degrees
 
-    /* ---- the inset: the same two lines, magnified until the gap is legible */
+      /** Web Mercator ordinate. Its slope sec φ is the whole point of the section. */
+      const merc = (phiDeg) => Math.log(Math.tan(Math.PI / 4 + (phiDeg * D2R) / 2));
+      /** …and its inverse, used to turn the mid-ordinate back into a latitude. */
+      const invMerc = (y) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / D2R;
 
-    const ix = mainW + 1, iw = w - mainW - 1;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(ix, 0, iw, h);
-    ctx.clip();
-    ctx.fillStyle = COLOR.sea;
-    ctx.fillRect(ix, 0, iw, h);
+      f.draw = function () {
+        const { ctx, w, h } = f;
+        const half = sep / 2;
+        const phiA = phiM + half;      // north coast (higher latitude)
+        const phiB = phiM - half;      // south coast
 
-    // Choose the zoom so the gap fills a fixed share of the inset. When the gap
-    // is zero — at the equator — fall back to a fixed window rather than
-    // dividing by nothing.
-    const gapDeg = Math.abs(dPhi);
-    const winDeg = gapDeg > 1e-9 ? gapDeg * 3.4 : 0.02;
-    const zTop = phiM + winDeg / 2, zBot = phiM - winDeg / 2;
-    const zY = (phi) => h - ((phi - zBot) / (zTop - zBot)) * h;
+        // Exact, not the small-h expansion: the screen seam is the latitude whose
+        // ordinate is the mean of the two coasts' ordinates.
+        const phiPixel = invMerc((merc(phiA) + merc(phiB)) / 2);
+        const dPhi = phiPixel - phiM;              // degrees, poleward-positive
+        const dKm = Math.abs(dPhi) * D2R * R_KM;
 
-    const zTrue = zY(phiM), zPix = zY(phiPixel);
+        // View window, in ordinate space, so the map really is Mercator.
+        const pad = half * 1.7;
+        const yTop = merc(phiM + pad), yBot = merc(phiM - pad);
+        const toY = (phi) => h - ((merc(phi) - yBot) / (yTop - yBot)) * h;
 
-    // The band of sea in dispute between the two answers.
-    ctx.fillStyle = COLOR.oxide;
-    ctx.globalAlpha = 0.20;
-    ctx.fillRect(ix, Math.min(zTrue, zPix), iw, Math.abs(zPix - zTrue));
-    ctx.globalAlpha = 1;
+        clearSea(ctx, w, h);
 
-    ctx.strokeStyle = COLOR.green;
-    ctx.lineWidth = 2.4;
-    ctx.beginPath(); ctx.moveTo(ix, zTrue); ctx.lineTo(w, zTrue); ctx.stroke();
+        const mainW = Math.round(w * 0.60);
+        const ix = mainW + 1, iw = w - mainW - 1;
 
-    ctx.strokeStyle = COLOR.oxide;
-    ctx.setLineDash([7, 5]);
-    ctx.beginPath(); ctx.moveTo(ix, zPix); ctx.lineTo(w, zPix); ctx.stroke();
-    ctx.setLineDash([]);
+        /* ---- left: the map ------------------------------------------------ */
 
-    const zoom = (pad * 2) / winDeg;
-    label(ctx, `detail ×${zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}`, ix + 10, 16, COLOR.ink);
-    label(ctx, dKm < 1 ? `${Math.round(dKm * 1000)} m` : `${dKm.toFixed(1)} km`,
-      ix + iw / 2, (zTrue + zPix) / 2, COLOR.oxide, 'center');
-    ctx.restore();
+        // Graticule at whole degrees, labelled. The spacing widens toward the
+        // pole; that widening is the cause of everything else in the section.
+        ctx.save();
+        ctx.strokeStyle = COLOR.rule;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.7;
+        ctx.font = '600 10px ui-sans-serif, system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        const gStep = pad > 6 ? 2 : 1;
+        for (let p = Math.ceil(phiM - pad); p <= phiM + pad; p += gStep) {
+          const y = toY(p);
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mainW - 34, y); ctx.stroke();
+          ctx.fillStyle = COLOR.ink;
+          ctx.fillText(`${p}°`, mainW - 40, y);
+        }
+        ctx.restore();
 
-    ctx.save();
-    ctx.strokeStyle = COLOR.rule;
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(mainW, 0); ctx.lineTo(mainW, h); ctx.stroke();
-    ctx.restore();
+        // The two coasts.
+        [phiA, phiB].forEach((phi, i) => {
+          const y = toY(phi);
+          ctx.fillStyle = COLOR.land;
+          ctx.fillRect(0, i === 0 ? 0 : y, mainW, i === 0 ? y : h - y);
+          ctx.strokeStyle = COLOR.coast;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mainW, y); ctx.stroke();
+          label(ctx, i === 0 ? 'north coast' : 'south coast', 8, y + (i === 0 ? -13 : 13), COLOR.ink);
+        });
 
-    const nm = dKm / 1.852;
-    out.innerHTML =
-      `Δφ <i>${(dPhi * 3600).toFixed(1)}″</i> · ` +
-      `Δs <i>${dKm < 1 ? Math.round(dKm * 1000) + ' m' : dKm.toFixed(2) + ' km'}</i> ` +
-      `(${nm.toFixed(2)} M) · poleward · ` +
-      `<u>target precision ≈ 3 m</u> → off by <i>${dKm > 0 ? Math.round(dKm * 1000 / 3) : 0}×</i>`;
-  };
+        // A north arrow, so "poleward" has a direction on the page.
+        ctx.save();
+        ctx.fillStyle = COLOR.ink;
+        ctx.strokeStyle = COLOR.ink;
+        ctx.lineWidth = 1.5;
+        ctx.font = '600 10px ui-sans-serif, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText('N', 8, 16);
+        ctx.beginPath();
+        ctx.moveTo(8, 22); ctx.lineTo(8, 31);
+        ctx.moveTo(4.5, 27.5); ctx.lineTo(8, 34); ctx.lineTo(11.5, 27.5);
+        ctx.stroke();
+        ctx.restore();
 
-  latS.addEventListener('input', () => { phiM = +latS.value; latOut.textContent = phiM; f.draw(); });
-  sepS.addEventListener('input', () => {
-    sep = +sepS.value / 10;
-    sepOut.textContent = sep.toFixed(1);
-    f.draw();
-  });
-});
+        // The true median at the mid-latitude. The screen seam sits on top of it
+        // at this scale; the panel on the right separates the two.
+        const yTrue = toY(phiM);
+        strokePolyline(ctx, [{ x: 0, y: yTrue }, { x: mainW, y: yTrue }], COLOR.green, 2.6);
+        label(ctx, 'true median', mainW / 2, yTrue - 15, COLOR.green, 'center');
 
-/* ========================================================================= *
- *  Page wiring
- * ========================================================================= */
+        /* ---- right: the magnified seam ------------------------------------ */
 
-(function grain() {
-  const TILE = 160;
-  const c = document.createElement('canvas');
-  c.width = c.height = TILE;
-  const ctx = c.getContext('2d');
-  const img = ctx.createImageData(TILE, TILE);
-  const d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random() + Math.random() + Math.random()) / 3;
-    d[i] = d[i + 1] = d[i + 2] = 0;
-    d[i + 3] = Math.max(0, Math.round((n - 0.5) * 2 * 16));
-  }
-  ctx.putImageData(img, 0, 0);
-  document.documentElement.style.setProperty('--grain', `url(${c.toDataURL()})`);
-})();
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(ix, 0, iw, h);
+        ctx.clip();
+        ctx.fillStyle = COLOR.sea;
+        ctx.fillRect(ix, 0, iw, h);
 
-const runObserver = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    const fig = figures.find((f) => f.canvas === entry.target);
-    if (!fig || !fig.animated) return;
-    entry.isIntersecting ? fig.start() : fig.stop();
-  });
-}, { threshold: 0.1 });
+        // Choose the zoom so the gap fills a fixed share of the inset. When the
+        // gap is zero — at the equator — use a fixed window instead of dividing.
+        const gapDeg = Math.abs(dPhi);
+        const winDeg = gapDeg > 1e-9 ? gapDeg * 3.4 : 0.02;
+        const zTop = phiM + winDeg / 2, zBot = phiM - winDeg / 2;
+        const zY = (phi) => h - ((phi - zBot) / (zTop - zBot)) * h;
 
-figures.forEach((f) => { if (f.animated) runObserver.observe(f.canvas); });
+        const zTrue = zY(phiM), zPix = zY(phiPixel);
 
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => figures.forEach((f) => f.resize()), 160);
-});
+        // The band of sea the screen seam hands to the wrong side.
+        ctx.fillStyle = COLOR.oxide;
+        ctx.globalAlpha = 0.22;
+        ctx.fillRect(ix, Math.min(zTrue, zPix), iw, Math.abs(zPix - zTrue));
+        ctx.globalAlpha = 1;
 
-// Section-by-section keyboard navigation, for driving this live in a talk.
-const sections = [...document.querySelectorAll('header.masthead, section.step, footer.end')];
-window.addEventListener('keydown', (e) => {
-  const t = e.target;
-  if (t && typeof t.closest === 'function' && t.closest('input, button, textarea, select')) return;
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const dir = e.key === 'ArrowRight' || e.key === 'PageDown' ? 1
-            : e.key === 'ArrowLeft' || e.key === 'PageUp' ? -1 : 0;
-  if (!dir) return;
-  e.preventDefault();
-  const mid = window.scrollY + window.innerHeight / 2;
-  let idx = sections.findIndex((s) => s.offsetTop + s.offsetHeight > mid);
-  if (idx < 0) idx = sections.length - 1;
-  const next = sections[Math.max(0, Math.min(sections.length - 1, idx + dir))];
-  next.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-});
-</script>
+        // The two answers, each named.
+        ctx.strokeStyle = COLOR.green;
+        ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(ix, zTrue); ctx.lineTo(w, zTrue); ctx.stroke();
+
+        ctx.strokeStyle = COLOR.oxide;
+        ctx.setLineDash([7, 5]);
+        ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(ix, zPix); ctx.lineTo(w, zPix); ctx.stroke();
+        ctx.setLineDash([]);
+
+        label(ctx, 'true median · equal kilometres', w - 8, zTrue, COLOR.green, 'right');
+        label(ctx, 'screen seam · equal pixels', w - 8, zPix, COLOR.oxide, 'right');
+        ctx.restore();
+
+        const zoom = (pad * 2) / winDeg;
+        label(ctx, `magnified ×${zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}`, ix + 10, 16, COLOR.ink);
+        label(ctx, dKm < 1 ? `${Math.round(dKm * 1000)} m` : `${dKm.toFixed(1)} km`,
+          ix + iw / 2, (zTrue + zPix) / 2, COLOR.oxide, 'center');
+
+        // A thin rule between the map and the magnified panel.
+        ctx.save();
+        ctx.strokeStyle = COLOR.rule;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(mainW, 0); ctx.lineTo(mainW, h); ctx.stroke();
+        ctx.restore();
+
+        const nm = dKm / 1.852;
+        out.innerHTML =
+          `Δφ <i>${(dPhi * 3600).toFixed(1)}″</i> · ` +
+          `Δs <i>${dKm < 1 ? Math.round(dKm * 1000) + ' m' : dKm.toFixed(2) + ' km'}</i> ` +
+          `(${nm.toFixed(2)} M) · seam shifted <i>poleward</i> · ` +
+          `<u>treaty precision ≈ 3 m</u> → off by <i>${dKm > 0 ? Math.round(dKm * 1000 / 3) : 0}×</i>`;
+      };
+
+      latS.addEventListener('input', () => { phiM = +latS.value; latOut.textContent = phiM; f.draw(); });
+      sepS.addEventListener('input', () => {
+        sep = +sepS.value / 10;
+        sepOut.textContent = sep.toFixed(1);
+        f.draw();
+      });
+    });
+
+    /* ========================================================================= *
+     *  Page wiring
+     * ========================================================================= */
+
+    (function grain() {
+      const TILE = 160;
+      const c = document.createElement('canvas');
+      c.width = c.height = TILE;
+      const ctx = c.getContext('2d');
+      const img = ctx.createImageData(TILE, TILE);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() + Math.random() + Math.random()) / 3;
+        d[i] = d[i + 1] = d[i + 2] = 0;
+        d[i + 3] = Math.max(0, Math.round((n - 0.5) * 2 * 16));
+      }
+      ctx.putImageData(img, 0, 0);
+      document.documentElement.style.setProperty('--grain', `url(${c.toDataURL()})`);
+    })();
+
+    const runObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const fig = figures.find((f) => f.canvas === entry.target);
+        if (!fig || !fig.animated) return;
+        entry.isIntersecting ? fig.start() : fig.stop();
+      });
+    }, { threshold: 0.1 });
+
+    figures.forEach((f) => { if (f.animated) runObserver.observe(f.canvas); });
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => figures.forEach((f) => f.resize()), 160);
+    });
+
+    // Section-by-section keyboard navigation, for driving this live in a talk.
+    const sections = [...document.querySelectorAll('header.masthead, section.step, footer.end')];
+    window.addEventListener('keydown', (e) => {
+      const t = e.target;
+      if (t && typeof t.closest === 'function' && t.closest('input, button, textarea, select')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const dir = e.key === 'ArrowRight' || e.key === 'PageDown' ? 1
+        : e.key === 'ArrowLeft' || e.key === 'PageUp' ? -1 : 0;
+      if (!dir) return;
+      e.preventDefault();
+      const mid = window.scrollY + window.innerHeight / 2;
+      let idx = sections.findIndex((s) => s.offsetTop + s.offsetHeight > mid);
+      if (idx < 0) idx = sections.length - 1;
+      const next = sections[Math.max(0, Math.min(sections.length - 1, idx + dir))];
+      next.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+  </script>
 </body>
+
 </html>
