@@ -1000,8 +1000,18 @@
               <button class="toggle" id="med-rock" aria-pressed="false">Add one rock</button>
             </div>
             <div class="ctl-row">
+              <div class="field" id="med-zoom-field">
+                <div class="ctl-row between">
+                  <span class="ctl-label">Detail · zoom</span>
+                  <span class="ctl-value"><span id="med-zoom">16</span></span>
+                </div>
+                <input type="range" id="med-zoom-slider" aria-label="Map zoom, or level of detail" min="5" max="20"
+                  value="16">
+              </div>
               <p class="ctl-hint"><b>Move any basepoint.</b> In <b>Delaunay dual</b>, move
-                the pointer to walk the construction along the boundary. The frame is 400 km wide.</p>
+                the pointer to walk the construction along the boundary. The frame is 400 km wide.
+                <b>Zoom out</b> — the small island disappears.
+              </p>
             </div>
             <p class="readout" id="med-out"></p>
           </div>
@@ -1023,7 +1033,9 @@
             <p>
               Press <strong>Add one rock</strong>. One small feature takes control of
               the middle of the boundary and moves it. The readout shows how much sea
-              it transfers.
+              it transfers. Then drag <strong>Detail · zoom</strong> down. The rock
+              shrinks, and below a cutoff it disappears — and the boundary silently
+              snaps back to ignoring it.
             </p>
           </div>
           <div class="prose">
@@ -1039,7 +1051,8 @@
               <strong>Where the screen method fails.</strong>
               Very small islands disappear as you zoom out. In cartography this is a
               sensible simplification. On a screen it silently deletes the feature
-              that decides the answer.
+              that decides the answer. Above, add the rock, then drag
+              <strong>Detail · zoom</strong> down and watch the boundary snap back.
             </div>
           </div>
         </div>
@@ -2304,11 +2317,29 @@
       const out = document.getElementById('med-out');
       const cap = document.getElementById('med-cap');
       const rockBtn = document.getElementById('med-rock');
+      const zoomS = document.getElementById('med-zoom-slider');
+      const zoomOut = document.getElementById('med-zoom');
+      const zoomField = document.getElementById('med-zoom-field');
       let mode = 'line';
       let rockOn = false;
+      let zoom = 16;         // 5 (coarse) .. 20 (fine): the level-of-detail scale
       let hoverX = 0.5;      // fraction of the frame; picks the turning point shown
 
       const KM_WIDE = 400;   // the frame, declared, so the readouts mean something
+      const ROCK_KM = 0.6;   // the rock's real size in km — small enough to be culled
+
+      // Level of detail: at a coarse zoom the smallest feature that is kept is
+      // bigger than the rock, so the rock is culled — silently, the way a screen
+      // drops small islands as you zoom out.
+      function rockState() {
+        const cutoffKm = 0.25 + (16 - zoom) * 0.14;   // smallest feature kept, km
+        return {
+          rockR: 9 * (zoom / 16),
+          cutoffKm,
+          rockDropped: rockOn && cutoffKm > ROCK_KM,
+        };
+      }
+      zoomField.style.display = 'none';   // only matters once a rock is added
 
       // Basepoints as fractions of the frame. Coast A above, coast B below.
       const A = [
@@ -2326,7 +2357,7 @@
       function handleList() {
         const hs = [];
         A.concat(B).forEach((p) => hs.push({ x: p.fx * f.w, y: p.fy * f.h, ref: p }));
-        if (rockOn) hs.push({ x: ROCK.fx * f.w, y: ROCK.fy * f.h, ref: ROCK });
+        if (rockOn && !rockState().rockDropped) hs.push({ x: ROCK.fx * f.w, y: ROCK.fy * f.h, ref: ROCK });
         return hs;
       }
       draggable(f, handleList, (h, x, y) => { h.ref.fx = x / f.w; h.ref.fy = y / f.h; });
@@ -2373,10 +2404,14 @@
         const pa = px(A);
         const pb = px(B);
         const rock = { x: ROCK.fx * w, y: ROCK.fy * h };
-        const pbFull = rockOn ? pb.concat([rock]) : pb;
+        const pbFull = pb.concat([rock]);
+        const { rockR, rockDropped } = rockState();
 
         const base = median(pa, pb, w, h, 2);
-        const line = rockOn ? median(pa, pbFull, w, h, 2) : base;
+        const withRock = rockOn ? median(pa, pbFull, w, h, 2) : null;
+        const line = rockOn && !rockDropped ? withRock : base;
+        // Which generator set `line`'s control indices refer to.
+        const linePtsB = rockOn && !rockDropped ? pbFull : pb;
 
         drawCoast(ctx, pa, true, w, h);
         drawCoast(ctx, pb, false, w, h);
@@ -2421,7 +2456,7 @@
           for (let i = 0; i < line.length; i += 11) {
             const p = line[i];
             if (!p) continue;
-            const a = pa[p.ia], b = pbFull[p.ib];
+            const a = pa[p.ia], b = linePtsB[p.ib];
             ctx.beginPath();
             ctx.moveTo(a.x, a.y); ctx.lineTo(p.x, p.y); ctx.lineTo(b.x, b.y);
             ctx.stroke();
@@ -2454,7 +2489,7 @@
           // one taking over. Deduplicated, because a turn that changes control on
           // only one coast has three, not four.
           const three = [...new Set([sel.p.ia, sel.next.ia])].map((i) => pa[i])
-            .concat([...new Set([sel.p.ib, sel.next.ib])].map((i) => pbFull[i]));
+            .concat([...new Set([sel.p.ib, sel.next.ib])].map((i) => linePtsB[i]));
           ctx.save();
           ctx.strokeStyle = COLOR.oxide;
           ctx.lineWidth = 1.6;
@@ -2476,21 +2511,58 @@
         pb.forEach((p) => dot(ctx, p.x, p.y, 5, COLOR.navy, '#f4ecd8'));
         // After the plain basepoints, or the ordinary navy dots paint over them.
         highlight.forEach((g) => dot(ctx, g.x, g.y, 6.5, COLOR.oxide, '#f4ecd8'));
-        if (rockOn) {
-          dot(ctx, rock.x, rock.y, 5, COLOR.oxide, '#f4ecd8');
-          label(ctx, 'one rock', rock.x, rock.y - 16, COLOR.oxide, 'center');
+        if (rockOn && !rockDropped) {
+          // The rock is big enough to be kept, and it takes control of the
+          // boundary. The line without it stays as a faint reminder.
+          dot(ctx, rock.x, rock.y, Math.max(3, rockR), COLOR.oxide, '#f4ecd8');
+          label(ctx, 'one rock', rock.x, rock.y - rockR - 14, COLOR.oxide, 'center');
           strokePolyline(ctx, base, COLOR.ink, 1.2, [3, 4]);
+        } else if (rockOn) {
+          // Zoomed out: the rock fell below the level-of-detail cutoff and was
+          // culled. The solid line is what the screen draws now; the dashed line
+          // is what the law would draw with the rock still there.
+          ctx.save();
+          ctx.strokeStyle = COLOR.oxide;
+          ctx.globalAlpha = 0.45;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.arc(rock.x, rock.y, 8, 0, TAU);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+          label(ctx, 'the rock was dropped at this zoom', rock.x, rock.y - 14, COLOR.oxide, 'center');
+          if (withRock) {
+            strokePolyline(ctx, withRock, COLOR.ink, 1.2, [3, 4]);
+            const wr = withRock.filter(Boolean);
+            if (wr.length) {
+              const mid = wr[Math.floor(wr.length / 2)];
+              label(ctx, 'what the law would draw', mid.x, mid.y - 12, COLOR.ink, 'center');
+            }
+          }
         }
 
-        const moved = rockOn ? areaBetween(base.filter(Boolean), line.filter(Boolean), w) : 0;
+        const moved = rockOn && !rockDropped
+          ? areaBetween(base.filter(Boolean), line.filter(Boolean), w)
+          : 0;
+        const lost = rockDropped && withRock
+          ? areaBetween(base.filter(Boolean), withRock.filter(Boolean), w)
+          : 0;
+        const genCount = rockOn && !rockDropped ? pbFull.length : pb.length;
         out.innerHTML =
-          `basepoints <b>${pa.length + pbFull.length}</b> · turning points <b>${turns.length}</b>` +
-          (rockOn ? ` · the rock transfers <i>${moved.toFixed(0)} km²</i> of sea` : '');
-        cap.textContent = mode === 'dual'
-          ? 'Each dashed circle passes through the basepoints controlling the turn and encloses no other — the Delaunay condition.'
-          : mode === 'control'
-            ? 'Every stretch of the line is controlled by one basepoint on each coast.'
-            : 'The strict equidistance line between two coasts, from their basepoints.';
+          `basepoints <b>${pa.length + genCount}</b> · turning points <b>${turns.length}</b>` +
+          (rockOn && !rockDropped
+            ? ` · the rock transfers <i>${moved.toFixed(0)} km²</i> of sea`
+            : rockDropped
+              ? ` · <i>the rock (${ROCK_KM} km) fell below the detail cutoff and vanished — it would have moved the line by ${lost.toFixed(0)} km²</i>`
+              : '');
+        cap.textContent = rockDropped
+          ? 'Zoomed out: the small island was dropped. The solid line is what the screen draws; the dashed line is what the law would draw.'
+          : mode === 'dual'
+            ? 'Each dashed circle passes through the basepoints controlling the turn and encloses no other — the Delaunay condition.'
+            : mode === 'control'
+              ? 'Every stretch of the line is controlled by one basepoint on each coast.'
+              : 'The strict equidistance line between two coasts, from their basepoints.';
       };
 
       // Sweeping the pointer walks the construction along the boundary. Harmless
@@ -2504,6 +2576,12 @@
         rockOn = !rockOn;
         rockBtn.setAttribute('aria-pressed', String(rockOn));
         rockBtn.textContent = rockOn ? 'Remove the rock' : 'Add one rock';
+        zoomField.style.display = rockOn ? '' : 'none';
+        f.draw();
+      });
+      zoomS.addEventListener('input', () => {
+        zoom = +zoomS.value;
+        zoomOut.textContent = zoom;
         f.draw();
       });
       segmented('med-mode', (m) => { mode = m; f.draw(); });
